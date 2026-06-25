@@ -2,10 +2,10 @@ const API_TOKEN = process.env.FOOTBALL_DATA_TOKEN!;
 const BASE_URL = "https://api.football-data.org/v4";
 const WC_CODE = "WC";
 
-async function apiFetch<T>(path: string): Promise<T> {
+async function apiFetch<T>(path: string, revalidate = 10): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { "X-Auth-Token": API_TOKEN },
-    next: { revalidate: 1800 },
+    next: { revalidate },
   });
 
   if (res.status === 429) {
