@@ -11,6 +11,7 @@ import { TeamForm } from "@/components/analysis/team-form";
 import { StatComparison } from "@/components/analysis/stat-comparison";
 import { PredictionForm } from "@/components/predictions/prediction-form";
 import { getCountryName } from "@/lib/country-codes";
+import { getESPNMatchStats } from "@/lib/api/espn";
 
 export default async function MatchAnalysisPage({
   params,
@@ -35,7 +36,12 @@ export default async function MatchAnalysisPage({
     );
   }
 
-  const analysis = await getFullMatchAnalysis(matchId);
+  const [analysis, espnStats] = await Promise.all([
+    getFullMatchAnalysis(matchId),
+    match.status === "finished"
+      ? getESPNMatchStats(match.homeTeam, match.awayTeam, match.matchDate)
+      : Promise.resolve(null),
+  ]);
   const userPrediction = await getUserPredictionForMatch(session.user.id, matchId);
 
   const date = match.matchDate;
@@ -244,6 +250,33 @@ export default async function MatchAnalysisPage({
               ]}
             />
           </div>
+
+          {/* ESPN Detailed Stats */}
+          {espnStats && (
+            <div className="rounded-xl bg-card-bg border border-card-border p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-white">
+                  Estatísticas da Partida
+                </h2>
+                <span className="text-[9px] text-muted">Fonte: ESPN</span>
+              </div>
+              <StatComparison
+                stats={[
+                  { label: "Posse de Bola (%)", homeValue: espnStats.home.possession, awayValue: espnStats.away.possession, format: "decimal" },
+                  { label: "Finalizações", homeValue: espnStats.home.shots, awayValue: espnStats.away.shots },
+                  { label: "Chutes no Gol", homeValue: espnStats.home.shotsOnTarget, awayValue: espnStats.away.shotsOnTarget },
+                  { label: "Passes", homeValue: espnStats.home.passes, awayValue: espnStats.away.passes },
+                  { label: "Precisão de Passe (%)", homeValue: espnStats.home.passAccuracy, awayValue: espnStats.away.passAccuracy },
+                  { label: "Escanteios", homeValue: espnStats.home.corners, awayValue: espnStats.away.corners },
+                  { label: "Faltas", homeValue: espnStats.home.fouls, awayValue: espnStats.away.fouls },
+                  { label: "Impedimentos", homeValue: espnStats.home.offsides, awayValue: espnStats.away.offsides },
+                  { label: "Defesas", homeValue: espnStats.home.saves, awayValue: espnStats.away.saves },
+                  { label: "Desarmes", homeValue: espnStats.home.tackles, awayValue: espnStats.away.tackles },
+                  { label: "Interceptações", homeValue: espnStats.home.interceptions, awayValue: espnStats.away.interceptions },
+                ]}
+              />
+            </div>
+          )}
 
           {/* Form */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
