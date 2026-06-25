@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { TeamFlag } from "./ui/team-flag";
 import { getCountryName } from "@/lib/country-codes";
 
 type Scorer = {
-  player: { id: number; name: string };
+  player: { id: number; name: string; photo: string | null };
   team: { shortName: string; crest: string };
   playedMatches: number;
   goals: number;
@@ -15,17 +16,32 @@ type Scorer = {
 
 type Defense = { name: string; tla: string; ga: number; mp: number; crest: string };
 
-function PlayerAvatar({ name, index }: { name: string; index: number }) {
+function PlayerPhoto({ name, photo, index }: { name: string; photo: string | null; index: number }) {
   const colors = [
     "bg-accent-purple/20 text-accent-purple",
     "bg-accent-green/15 text-accent-green",
     "bg-accent-yellow/15 text-accent-yellow",
     "bg-accent-red/15 text-accent-red",
   ];
-  const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
+  if (photo) {
+    return (
+      <div className="h-10 w-10 rounded-full overflow-hidden bg-surface-2 shrink-0">
+        <Image
+          src={photo}
+          alt={name}
+          width={40}
+          height={40}
+          className="object-cover object-top w-full h-full"
+          unoptimized
+        />
+      </div>
+    );
+  }
+
+  const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   return (
-    <div className={`h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${colors[index % colors.length]}`}>
+    <div className={`h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${colors[index % colors.length]}`}>
       {initials}
     </div>
   );
@@ -85,13 +101,13 @@ export function TopScorers() {
                 key={s.player.id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: i * 0.03 }}
+                transition={{ delay: i * 0.04 }}
                 className="flex items-center gap-3 px-4 py-2.5 border-b border-border last:border-0"
               >
                 <span className={`w-5 text-center text-[10px] font-bold ${i < 3 ? "text-accent-purple" : "text-muted"}`}>
                   {i + 1}
                 </span>
-                <PlayerAvatar name={s.player.name} index={i} />
+                <PlayerPhoto name={s.player.name} photo={s.player.photo} index={i} />
                 <div className="flex-1 min-w-0">
                   <span className="text-xs text-white font-medium truncate block">{s.player.name}</span>
                   <div className="flex items-center gap-1 mt-0.5">
