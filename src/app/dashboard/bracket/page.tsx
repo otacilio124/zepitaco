@@ -31,6 +31,13 @@ type GroupEntry = {
 type GroupData = {
   group: string;
   table: GroupEntry[];
+  finished: boolean;
+};
+
+type QualifiedTeam = {
+  team: string;
+  group: string;
+  position: number;
 };
 
 const stageNames: Record<string, string> = {
@@ -44,18 +51,8 @@ const stageNames: Record<string, string> = {
 
 const stageOrder = ["LAST_32", "LAST_16", "QUARTER_FINALS", "SEMI_FINALS", "THIRD_PLACE", "FINAL"];
 
-function TeamSlot({
-  name,
-  score,
-  isWinner,
-  isLoser,
-  border,
-}: {
-  name: string | null;
-  score: number | null;
-  isWinner: boolean;
-  isLoser: boolean;
-  border: boolean;
+function TeamSlot({ name, score, isWinner, isLoser, border }: {
+  name: string | null; score: number | null; isWinner: boolean; isLoser: boolean; border: boolean;
 }) {
   return (
     <div className={`flex items-center justify-between px-2.5 py-2 ${border ? "border-b border-border/40" : ""} ${isLoser ? "opacity-25" : ""}`}>
@@ -111,11 +108,34 @@ function BracketCard({ match, i }: { match: KOMatch; i: number }) {
   return hasTeams ? <Link href={`/dashboard/matches/${match.id}`}>{inner}</Link> : inner;
 }
 
+function QualifiedSection({ teams }: { teams: QualifiedTeam[] }) {
+  if (teams.length === 0) return null;
+  return (
+    <div className="mb-5">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-[10px] font-semibold text-accent-green">Classificados para 2ª Rodada</span>
+        <span className="text-[10px] text-muted">· {teams.length} seleções</span>
+      </div>
+      <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+        {teams.map((t) => (
+          <motion.div
+            key={t.team}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="shrink-0 flex items-center gap-2 bg-accent-green/5 border border-accent-green/20 rounded-lg px-3 py-2"
+          >
+            <TeamFlag name={t.team} size={16} />
+            <span className="text-[11px] text-white font-medium">{getCountryName(t.team)}</span>
+            <span className="text-[9px] text-muted">{t.position}º {t.group}</span>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function GroupFight({ group }: { group: GroupData }) {
   const letter = group.group.replace("GROUP_", "");
-  const top2 = group.table.slice(0, 2);
-  const allPlayed3 = group.table.every((t) => t.played >= 3);
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
@@ -123,36 +143,25 @@ function GroupFight({ group }: { group: GroupData }) {
       className="rounded-lg border border-border/30 bg-surface p-2.5"
     >
       <div className="flex items-center gap-1.5 mb-2">
-        <span className="text-[9px] font-bold text-accent-purple bg-accent-purple/10 px-1.5 py-0.5 rounded">
-          {letter}
-        </span>
-        {allPlayed3 ? (
+        <span className="text-[9px] font-bold text-accent-purple bg-accent-purple/10 px-1.5 py-0.5 rounded">{letter}</span>
+        {group.finished ? (
           <span className="text-[9px] text-accent-green font-medium">Definido</span>
         ) : (
           <span className="text-[9px] text-accent-yellow font-medium">Em disputa</span>
         )}
       </div>
       {group.table.map((entry, i) => {
-        const isQualifying = i < 2;
+        const isTop2 = i < 2;
         return (
-          <div
-            key={entry.tla}
-            className={`flex items-center justify-between py-1 ${i < group.table.length - 1 ? "border-b border-border/20" : ""} ${
-              !isQualifying ? "opacity-30" : ""
-            }`}
-          >
+          <div key={entry.tla} className={`flex items-center justify-between py-1 ${i < group.table.length - 1 ? "border-b border-border/20" : ""} ${!isTop2 ? "opacity-30" : ""}`}>
             <div className="flex items-center gap-1.5">
-              <span className={`text-[9px] w-3 text-center ${isQualifying ? "text-accent-green font-bold" : "text-muted"}`}>
+              <span className={`text-[9px] w-3 text-center ${isTop2 ? (entry.qualified ? "text-accent-green" : "text-accent-yellow") : "text-muted"} font-bold`}>
                 {i + 1}
               </span>
               <TeamFlag name={entry.team} size={12} />
-              <span className={`text-[10px] ${isQualifying ? "text-white" : "text-muted"}`}>
-                {getCountryName(entry.team)}
-              </span>
+              <span className={`text-[10px] ${isTop2 ? "text-white" : "text-muted"}`}>{getCountryName(entry.team)}</span>
             </div>
-            <span className={`text-[10px] font-bold ${isQualifying ? "text-white" : "text-muted"}`}>
-              {entry.points}pts
-            </span>
+            <span className={`text-[10px] font-bold ${isTop2 ? "text-white" : "text-muted"}`}>{entry.points}pts</span>
           </div>
         );
       })}
@@ -163,6 +172,7 @@ function GroupFight({ group }: { group: GroupData }) {
 export default function BracketPage() {
   const [matches, setMatches] = useState<KOMatch[]>([]);
   const [groups, setGroups] = useState<GroupData[]>([]);
+  const [qualified, setQualified] = useState<QualifiedTeam[]>([]);
   const [groupsFinished, setGroupsFinished] = useState(false);
   const [active, setActive] = useState("LAST_32");
   const [loading, setLoading] = useState(true);
@@ -173,6 +183,7 @@ export default function BracketPage() {
       .then((data) => {
         setMatches(data.matches || []);
         setGroups(data.groups || []);
+        setQualified(data.qualifiedTeams || []);
         setGroupsFinished(data.groupsFinished || false);
         setLoading(false);
       })
@@ -181,7 +192,8 @@ export default function BracketPage() {
 
   const stages = stageOrder.filter((s) => matches.some((m) => m.stage === s));
   const filtered = matches.filter((m) => m.stage === active);
-  const unfinishedGroups = groups.filter((g) => g.table.some((t) => t.played < 3));
+  const unfinishedGroups = groups.filter((g) => !g.finished);
+  const finishedGroups = groups.filter((g) => g.finished);
 
   return (
     <div className="space-y-5">
@@ -206,12 +218,7 @@ export default function BracketPage() {
               }`}
             >
               {stageNames[s]}
-              <span className={`text-[9px] ${active === s ? "text-white/60" : "text-muted/60"}`}>
-                {count}
-              </span>
-              {!hasTeams && active !== s && (
-                <span className="h-1.5 w-1.5 rounded-full bg-accent-yellow/60" />
-              )}
+              <span className={`text-[9px] ${active === s ? "text-white/60" : "text-muted/60"}`}>{count}</span>
             </button>
           );
         })}
@@ -230,17 +237,32 @@ export default function BracketPage() {
             exit={{ opacity: 0, x: -10 }}
             transition={{ duration: 0.2 }}
           >
-            {/* Group fight context for LAST_32 */}
-            {active === "LAST_32" && !groupsFinished && unfinishedGroups.length > 0 && (
+            {/* Qualified teams banner */}
+            {active === "LAST_32" && qualified.length > 0 && (
+              <QualifiedSection teams={qualified} />
+            )}
+
+            {/* Groups still fighting */}
+            {active === "LAST_32" && unfinishedGroups.length > 0 && (
               <div className="mb-5">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-[10px] font-semibold text-accent-yellow">Disputando vaga</span>
-                  <span className="text-[10px] text-muted">· Grupos ainda em andamento</span>
+                  <span className="text-[10px] text-muted">· {unfinishedGroups.length} grupos em andamento</span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {unfinishedGroups.map((g) => (
-                    <GroupFight key={g.group} group={g} />
-                  ))}
+                  {unfinishedGroups.map((g) => <GroupFight key={g.group} group={g} />)}
+                </div>
+              </div>
+            )}
+
+            {/* Finished groups */}
+            {active === "LAST_32" && finishedGroups.length > 0 && unfinishedGroups.length > 0 && (
+              <div className="mb-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-semibold text-accent-green">Grupos encerrados</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {finishedGroups.map((g) => <GroupFight key={g.group} group={g} />)}
                 </div>
               </div>
             )}
@@ -249,36 +271,31 @@ export default function BracketPage() {
             <div className="flex items-center gap-2 mb-3">
               <span className="text-[10px] font-semibold text-accent-purple">{stageNames[active]}</span>
               <span className="text-[10px] text-muted">· {filtered.length} jogos</span>
-              {filtered.every((m) => !m.home && !m.away) && (
-                <span className="text-[10px] text-accent-yellow">· Times a definir</span>
-              )}
             </div>
 
-            {/* Matches grid */}
+            {/* Matches */}
             <div className={`grid gap-2 ${
               active === "FINAL" || active === "THIRD_PLACE"
                 ? "grid-cols-1 max-w-xs"
                 : active === "SEMI_FINALS"
                   ? "grid-cols-1 sm:grid-cols-2 max-w-lg"
-                  : active === "QUARTER_FINALS"
-                    ? "grid-cols-2 md:grid-cols-4"
-                    : "grid-cols-2 md:grid-cols-4"
+                  : "grid-cols-2 md:grid-cols-4"
             }`}>
               {filtered.map((m, i) => <BracketCard key={m.id} match={m} i={i} />)}
             </div>
 
-            {/* Flow indicator */}
+            {/* Next stage link */}
             {active !== "FINAL" && active !== "THIRD_PLACE" && (
-              <div className="flex items-center justify-center gap-2 mt-4 text-muted">
-                <span className="text-[10px]">Vencedores avançam para</span>
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <span className="text-[10px] text-muted">Vencedores avançam →</span>
                 <button
                   onClick={() => {
-                    const nextIdx = stageOrder.indexOf(active) + 1;
-                    if (nextIdx < stageOrder.length) setActive(stageOrder[nextIdx]);
+                    const next = stageOrder.indexOf(active) + 1;
+                    if (next < stageOrder.length) setActive(stageOrder[next]);
                   }}
                   className="text-[10px] text-accent-purple font-medium hover:underline"
                 >
-                  {stageNames[stageOrder[stageOrder.indexOf(active) + 1]] || "próxima fase"} →
+                  {stageNames[stageOrder[stageOrder.indexOf(active) + 1]]}
                 </button>
               </div>
             )}
@@ -288,17 +305,9 @@ export default function BracketPage() {
 
       {/* Legend */}
       <div className="flex flex-wrap gap-3 text-[10px] text-muted pt-2">
-        <span className="flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-accent-green" />
-          Classificado
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-accent-yellow" />
-          Em disputa
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="opacity-25">Time</span> = Eliminado
-        </span>
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-accent-green" /> Classificado</span>
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-accent-yellow" /> Em disputa</span>
+        <span className="flex items-center gap-1"><span className="opacity-25">Time</span> = Eliminado</span>
       </div>
 
       <p className="text-[10px] text-muted text-center">Football data provided by Football-Data.org</p>
