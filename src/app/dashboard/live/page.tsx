@@ -23,7 +23,7 @@ type RealtimeMatch = {
 
 type RealtimeData = {
   live: RealtimeMatch[];
-  today: RealtimeMatch[];
+  matches: RealtimeMatch[];
   total: number;
   timestamp: string;
 };
@@ -131,6 +131,30 @@ export default function LivePage() {
     };
   }, [fetchData]);
 
+  // Filter by local timezone on client
+  const now = new Date();
+  const todayStr = now.toLocaleDateString("en-CA"); // YYYY-MM-DD
+  const yesterdayDate = new Date(now);
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = yesterdayDate.toLocaleDateString("en-CA");
+  const tomorrowDate = new Date(now);
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrowStr = tomorrowDate.toLocaleDateString("en-CA");
+
+  const allMatches = data?.matches || [];
+  const todayMatches = allMatches.filter((m) => {
+    const d = new Date(m.utcDate);
+    return d.toLocaleDateString("en-CA") === todayStr;
+  });
+  const yesterdayMatches = allMatches.filter((m) => {
+    const d = new Date(m.utcDate);
+    return d.toLocaleDateString("en-CA") === yesterdayStr;
+  });
+  const tomorrowMatches = allMatches.filter((m) => {
+    const d = new Date(m.utcDate);
+    return d.toLocaleDateString("en-CA") === tomorrowStr;
+  });
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -184,13 +208,41 @@ export default function LivePage() {
           )}
 
           {/* Today's matches */}
-          {data && data.today.length > 0 && (
+          {todayMatches.length > 0 && (
             <div>
               <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-3">
-                Jogos de Hoje ({data.today.length})
+                Hoje ({todayMatches.length})
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                {data.today.filter((m) => m.status !== "IN_PLAY" && m.status !== "PAUSED").map((match) => (
+                {todayMatches.filter((m) => m.status !== "IN_PLAY" && m.status !== "PAUSED").map((match) => (
+                  <TodayMatchCard key={match.id} match={match} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Yesterday's matches */}
+          {yesterdayMatches.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-3">
+                Ontem ({yesterdayMatches.length})
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {yesterdayMatches.map((match) => (
+                  <TodayMatchCard key={match.id} match={match} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tomorrow's matches */}
+          {tomorrowMatches.length > 0 && (
+            <div>
+              <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-3">
+                Amanhã ({tomorrowMatches.length})
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {tomorrowMatches.map((match) => (
                   <TodayMatchCard key={match.id} match={match} />
                 ))}
               </div>
