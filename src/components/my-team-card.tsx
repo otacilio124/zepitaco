@@ -30,90 +30,63 @@ export function MyTeamCard({ country, countryCode, matches }: Props) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.1 }}
-      className="rounded-2xl overflow-hidden gradient-border"
+      transition={{ duration: 0.4, delay: 0.1 }}
+      className="card p-5 space-y-4 border-accent-purple/15"
     >
-      <div className="card !border-0 p-5 space-y-4">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <Image
-            src={`https://flagcdn.com/w80/${countryCode}.png`}
-            alt={country}
-            width={48}
-            height={34}
-            className="rounded object-cover"
-            unoptimized
-          />
-          <div>
-            <h2 className="text-base font-bold text-white">{country}</h2>
-            <p className="text-xs text-muted">Sua seleção do coração</p>
-          </div>
-        </div>
-
-        {/* Next match */}
-        {nextMatch && (
-          <Link
-            href={`/dashboard/matches/${nextMatch.matchId}`}
-            className="block rounded-xl bg-background/50 p-4 hover:bg-surface-hover transition-colors"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-accent-purple uppercase tracking-wider">
-                Próximo Jogo
-              </span>
-              <Countdown
-                targetDate={nextMatch.matchDate}
-                className="text-xs text-accent-green"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <TeamFlag name={nextMatch.homeTeam} size={24} />
-                <span className="text-sm font-semibold text-white truncate">
-                  {nextMatch.homeTeam}
-                </span>
-              </div>
-              <span className="text-muted text-sm px-3 shrink-0">vs</span>
-              <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-                <span className="text-sm font-semibold text-white truncate text-right">
-                  {nextMatch.awayTeam}
-                </span>
-                <TeamFlag name={nextMatch.awayTeam} size={24} />
-              </div>
-            </div>
-            <div className="text-center mt-2">
-              <span className="text-[10px] text-accent-purple">Ver análise →</span>
-            </div>
-          </Link>
-        )}
-
-        {/* Last result */}
-        {lastResult && (
-          <div className="rounded-xl bg-background/50 p-3">
-            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">
-              Último Resultado
-            </span>
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-white">{lastResult.homeTeam}</span>
-              <span className="text-sm font-bold text-white">
-                {lastResult.homeScore} - {lastResult.awayScore}
-              </span>
-              <span className="text-xs text-white">{lastResult.awayTeam}</span>
-            </div>
-          </div>
-        )}
-
-        {/* All matches count */}
-        <div className="text-center">
-          <Link
-            href="/dashboard/matches"
-            className="text-xs text-muted hover:text-accent-purple transition-colors"
-          >
-            {matches.length} {matches.length === 1 ? "jogo" : "jogos"} encontrados →
-          </Link>
+      <div className="flex items-center gap-3">
+        <Image
+          src={`https://flagcdn.com/w80/${countryCode}.png`}
+          alt={country}
+          width={40}
+          height={28}
+          className="rounded object-cover"
+          unoptimized
+        />
+        <div>
+          <h2 className="text-sm font-semibold text-white">{country}</h2>
+          <p className="text-[10px] text-muted">Sua seleção</p>
         </div>
       </div>
+
+      {nextMatch && (
+        <Link
+          href={`/dashboard/matches/${nextMatch.matchId}`}
+          className="block rounded-xl bg-background p-3.5 hover:bg-surface-hover transition-colors"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-semibold text-accent-purple">Próximo Jogo</span>
+            <Countdown targetDate={nextMatch.matchDate} className="text-[10px] text-muted" />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <TeamFlag name={nextMatch.homeTeam} size={20} />
+              <span className="text-xs text-white truncate">{nextMatch.homeTeam}</span>
+            </div>
+            <span className="text-xs text-muted px-2">vs</span>
+            <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+              <span className="text-xs text-white truncate text-right">{nextMatch.awayTeam}</span>
+              <TeamFlag name={nextMatch.awayTeam} size={20} />
+            </div>
+          </div>
+        </Link>
+      )}
+
+      {lastResult && (
+        <div className="rounded-xl bg-background p-3">
+          <span className="text-[10px] text-muted">Último resultado</span>
+          <div className="flex items-center justify-between mt-1.5">
+            <span className="text-xs text-white">{lastResult.homeTeam}</span>
+            <span className="text-xs font-semibold text-white">{lastResult.homeScore} - {lastResult.awayScore}</span>
+            <span className="text-xs text-white">{lastResult.awayTeam}</span>
+          </div>
+        </div>
+      )}
+
+      <Link href="/dashboard/matches" className="block text-center text-[10px] text-muted hover:text-accent-purple transition-colors">
+        {matches.length} {matches.length === 1 ? "jogo" : "jogos"} →
+      </Link>
     </motion.div>
   );
 }

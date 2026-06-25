@@ -7,27 +7,21 @@ export async function Header() {
   const session = await auth();
 
   return (
-    <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2.5">
-        <Link href={session?.user ? "/dashboard" : "/"} className="hover:opacity-90 transition-opacity">
+    <header className="border-b border-border bg-background/90 backdrop-blur-xl sticky top-0 z-50">
+      <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-14">
+        <Link href={session?.user ? "/dashboard" : "/"}>
           <Logo size="small" />
         </Link>
 
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-3">
           {session?.user ? (
             <UserMenu user={session.user} />
           ) : (
-            <div className="flex items-center gap-3">
-              <Link
-                href="/login"
-                className="text-sm text-muted hover:text-white transition-colors"
-              >
+            <div className="flex items-center gap-2">
+              <Link href="/login" className="btn-secondary !py-2 !px-4 !text-xs">
                 Entrar
               </Link>
-              <Link
-                href="/register"
-                className="text-sm gradient-spectrum rounded-xl px-5 py-2 text-white font-semibold hover:opacity-90 transition-opacity"
-              >
+              <Link href="/register" className="btn-primary !py-2 !px-4 !text-xs">
                 Criar Conta
               </Link>
             </div>

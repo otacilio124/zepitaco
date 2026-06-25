@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { Logo } from "@/components/logo";
 import { registerUser } from "@/lib/auth-actions";
 
@@ -15,80 +16,59 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     const formData = new FormData(e.currentTarget);
     const result = await registerUser(formData);
-
     if (result?.error) {
       setError(result.error);
       setLoading(false);
     } else {
-      router.push("/dashboard");
+      router.push("/onboarding");
     }
   }
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-8">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-sm space-y-8"
+      >
         <div className="flex justify-center">
-          <Logo size="large" />
+          <Logo size="default" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h2 className="text-xl font-semibold text-white text-center">
+          <h2 className="text-lg font-semibold text-white text-center">
             Criar sua conta
           </h2>
 
           {error && (
-            <div className="rounded-lg bg-accent-red/10 border border-accent-red/20 px-4 py-3 text-sm text-accent-red">
+            <div className="rounded-xl bg-accent-red/10 border border-accent-red/20 px-4 py-3 text-xs text-accent-red">
               {error}
             </div>
           )}
 
           <div className="space-y-3">
-            <input
-              name="name"
-              type="text"
-              placeholder="Nome completo"
-              required
-              className="w-full rounded-lg bg-card-bg border border-card-border px-4 py-3 text-sm text-white placeholder:text-muted focus:outline-none focus:border-accent-purple transition-colors"
-            />
-            <input
-              name="email"
-              type="email"
-              placeholder="E-mail"
-              required
-              className="w-full rounded-lg bg-card-bg border border-card-border px-4 py-3 text-sm text-white placeholder:text-muted focus:outline-none focus:border-accent-purple transition-colors"
-            />
-            <input
-              name="password"
-              type="password"
-              placeholder="Senha (mínimo 6 caracteres)"
-              required
-              minLength={6}
-              className="w-full rounded-lg bg-card-bg border border-card-border px-4 py-3 text-sm text-white placeholder:text-muted focus:outline-none focus:border-accent-purple transition-colors"
-            />
+            <input name="name" type="text" placeholder="Nome completo" required
+              className="w-full rounded-xl bg-surface border border-border px-4 py-3 text-sm text-white placeholder:text-muted focus:outline-none focus:border-accent-purple/50 focus:ring-1 focus:ring-accent-purple/20 transition-all" />
+            <input name="email" type="email" placeholder="E-mail" required
+              className="w-full rounded-xl bg-surface border border-border px-4 py-3 text-sm text-white placeholder:text-muted focus:outline-none focus:border-accent-purple/50 focus:ring-1 focus:ring-accent-purple/20 transition-all" />
+            <input name="password" type="password" placeholder="Senha (mínimo 6 caracteres)" required minLength={6}
+              className="w-full rounded-xl bg-surface border border-border px-4 py-3 text-sm text-white placeholder:text-muted focus:outline-none focus:border-accent-purple/50 focus:ring-1 focus:ring-accent-purple/20 transition-all" />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full gradient-spectrum rounded-lg py-3 text-sm font-semibold text-white hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
+          <button type="submit" disabled={loading} className="w-full btn-primary disabled:opacity-50">
             {loading ? "Criando conta..." : "Criar Conta"}
           </button>
 
-          <p className="text-center text-sm text-muted">
+          <p className="text-center text-xs text-muted">
             Já tem conta?{" "}
-            <Link
-              href="/login"
-              className="text-accent-purple hover:text-accent-green transition-colors"
-            >
+            <Link href="/login" className="text-accent-purple hover:underline">
               Entrar
             </Link>
           </p>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }
