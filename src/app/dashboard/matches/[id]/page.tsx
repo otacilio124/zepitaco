@@ -12,6 +12,7 @@ import { StatComparison } from "@/components/analysis/stat-comparison";
 import { PredictionForm } from "@/components/predictions/prediction-form";
 import { getCountryName } from "@/lib/country-codes";
 import { getESPNMatchData } from "@/lib/api/espn";
+import { getPlayerPhotos } from "@/lib/api/player-photos";
 
 export default async function MatchAnalysisPage({
   params,
@@ -43,6 +44,15 @@ export default async function MatchAnalysisPage({
       : Promise.resolve(null),
   ]);
   const espnStats = espnData?.stats || null;
+
+  // Fetch player photos for lineups
+  const allPlayerNames: string[] = [];
+  if (espnData?.homeLineup) allPlayerNames.push(...espnData.homeLineup.starters.map((p) => p.name), ...espnData.homeLineup.subs.map((p) => p.name));
+  if (espnData?.awayLineup) allPlayerNames.push(...espnData.awayLineup.starters.map((p) => p.name), ...espnData.awayLineup.subs.map((p) => p.name));
+  if (analysis?.homePlayers) allPlayerNames.push(...analysis.homePlayers.map((p) => p.name));
+  if (analysis?.awayPlayers) allPlayerNames.push(...analysis.awayPlayers.map((p) => p.name));
+  const uniqueNames = [...new Set(allPlayerNames)];
+  const playerPhotos = uniqueNames.length > 0 ? await getPlayerPhotos(uniqueNames) : {};
   const userPrediction = await getUserPredictionForMatch(session.user.id, matchId);
 
   const date = match.matchDate;
@@ -324,6 +334,29 @@ export default async function MatchAnalysisPage({
               </div>
               <p className="text-xs text-muted mb-4">Escalações confirmadas da partida</p>
 
+              {/* Tactical formation with real lineups */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {espnData.homeLineup && (
+                  <FormationPitch
+                    formation={espnData.homeLineup.formation}
+                    players={espnData.homeLineup.starters.map((p) => ({ name: p.name, position: p.position, number: parseInt(p.jersey) || null }))}
+                    teamName={getCountryName(match.homeTeam)}
+                    side="home"
+                    photos={playerPhotos}
+                  />
+                )}
+                {espnData.awayLineup && (
+                  <FormationPitch
+                    formation={espnData.awayLineup.formation}
+                    players={espnData.awayLineup.starters.map((p) => ({ name: p.name, position: p.position, number: parseInt(p.jersey) || null }))}
+                    teamName={getCountryName(match.awayTeam)}
+                    side="away"
+                    photos={playerPhotos}
+                  />
+                )}
+              </div>
+
+              {/* Player lists */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[espnData.homeLineup, espnData.awayLineup].map((lineup, teamIdx) =>
                   lineup && (
@@ -343,10 +376,10 @@ export default async function MatchAnalysisPage({
                         {lineup.starters.map((p, i) => (
                           <div key={i} className="flex items-center justify-between py-1 border-b border-border/30 last:border-0">
                             <div className="flex items-center gap-2">
-                              {p.photo ? (
-                                <img src={p.photo} alt="" className="w-6 h-6 rounded-full object-cover object-top" />
+                              {(playerPhotos[p.name] || p.photo) ? (
+                                <img src={playerPhotos[p.name] || p.photo || ""} alt="" className="w-7 h-7 rounded-full object-cover object-top" />
                               ) : (
-                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold ${
                                   teamIdx === 0 ? "bg-accent-green/10 text-accent-green" : "bg-accent-purple/10 text-accent-purple"
                                 }`}>
                                   {p.jersey}
@@ -367,10 +400,10 @@ export default async function MatchAnalysisPage({
                               <div key={i} className="flex items-center justify-between py-1 border-b border-border/30 last:border-0">
                                 <div className="flex items-center gap-2">
                                   <span className="text-accent-green text-[10px]">↑</span>
-                                  {p.photo ? (
-                                    <img src={p.photo} alt="" className="w-5 h-5 rounded-full object-cover object-top" />
+                                  {(playerPhotos[p.name] || p.photo) ? (
+                                    <img src={playerPhotos[p.name] || p.photo || ""} alt="" className="w-6 h-6 rounded-full object-cover object-top" />
                                   ) : (
-                                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold bg-surface-2 text-muted">
+                                    <span className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold bg-surface-2 text-muted">
                                       {p.jersey}
                                     </span>
                                   )}
@@ -428,10 +461,10 @@ export default async function MatchAnalysisPage({
               <p className="text-xs text-muted mb-4">Baseado nos elencos convocados</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {analysis.homePlayers.length > 0 && (
-                  <FormationPitch formation={analysis.homeFormation} players={analysis.homePlayers} teamName={getCountryName(match.homeTeam)} side="home" />
+                  <FormationPitch formation={analysis.homeFormation} players={analysis.homePlayers} teamName={getCountryName(match.homeTeam)} side="home" photos={playerPhotos} />
                 )}
                 {analysis.awayPlayers.length > 0 && (
-                  <FormationPitch formation={analysis.awayFormation} players={analysis.awayPlayers} teamName={getCountryName(match.awayTeam)} side="away" />
+                  <FormationPitch formation={analysis.awayFormation} players={analysis.awayPlayers} teamName={getCountryName(match.awayTeam)} side="away" photos={playerPhotos} />
                 )}
               </div>
 
