@@ -7,13 +7,29 @@ import { getCountryName } from "@/lib/country-codes";
 
 type Scorer = {
   player: { id: number; name: string };
-  team: { shortName: string };
+  team: { shortName: string; crest: string };
   playedMatches: number;
   goals: number;
   assists: number | null;
 };
 
-type Defense = { name: string; tla: string; ga: number; mp: number };
+type Defense = { name: string; tla: string; ga: number; mp: number; crest: string };
+
+function PlayerAvatar({ name, index }: { name: string; index: number }) {
+  const colors = [
+    "bg-accent-purple/20 text-accent-purple",
+    "bg-accent-green/15 text-accent-green",
+    "bg-accent-yellow/15 text-accent-yellow",
+    "bg-accent-red/15 text-accent-red",
+  ];
+  const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+
+  return (
+    <div className={`h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${colors[index % colors.length]}`}>
+      {initials}
+    </div>
+  );
+}
 
 export function TopScorers() {
   const [scorers, setScorers] = useState<Scorer[]>([]);
@@ -29,9 +45,9 @@ export function TopScorers() {
       setScorers(sData.scorers || []);
       const all: Defense[] = [];
       stData.standings?.filter((s: { type: string }) => s.type === "TOTAL").forEach(
-        (g: { table: { team: { shortName: string; tla: string }; goalsAgainst: number; playedGames: number }[] }) => {
+        (g: { table: { team: { shortName: string; tla: string; crest: string }; goalsAgainst: number; playedGames: number }[] }) => {
           g.table.forEach((t) => {
-            if (t.playedGames > 0) all.push({ name: t.team.shortName, tla: t.team.tla, ga: t.goalsAgainst, mp: t.playedGames });
+            if (t.playedGames > 0) all.push({ name: t.team.shortName, tla: t.team.tla, ga: t.goalsAgainst, mp: t.playedGames, crest: t.team.crest });
           });
         }
       );
@@ -64,7 +80,7 @@ export function TopScorers() {
 
       <div>
         {tab === "scorers"
-          ? scorers.slice(0, 8).map((s, i) => (
+          ? scorers.slice(0, 10).map((s, i) => (
               <motion.div
                 key={s.player.id}
                 initial={{ opacity: 0 }}
@@ -75,13 +91,24 @@ export function TopScorers() {
                 <span className={`w-5 text-center text-[10px] font-bold ${i < 3 ? "text-accent-purple" : "text-muted"}`}>
                   {i + 1}
                 </span>
-                <TeamFlag name={s.team.shortName} size={18} />
+                <PlayerAvatar name={s.player.name} index={i} />
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs text-white truncate block">{s.player.name}</span>
-                  <span className="text-[10px] text-muted">{getCountryName(s.team.shortName)}</span>
+                  <span className="text-xs text-white font-medium truncate block">{s.player.name}</span>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <TeamFlag name={s.team.shortName} size={12} />
+                    <span className="text-[10px] text-muted">{getCountryName(s.team.shortName)}</span>
+                  </div>
                 </div>
-                <span className="text-sm font-bold text-white">{s.goals}</span>
-                <span className="text-[10px] text-muted w-6 text-center">{s.assists || 0}a</span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="text-center">
+                    <span className="text-sm font-bold text-white">{s.goals}</span>
+                    <span className="text-[8px] text-muted block">gols</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-sm text-muted-light">{s.assists || 0}</span>
+                    <span className="text-[8px] text-muted block">asst</span>
+                  </div>
+                </div>
               </motion.div>
             ))
           : defenses.map((d, i) => (
@@ -95,10 +122,15 @@ export function TopScorers() {
                 <span className={`w-5 text-center text-[10px] font-bold ${i < 3 ? "text-accent-purple" : "text-muted"}`}>
                   {i + 1}
                 </span>
-                <TeamFlag name={d.name} size={18} />
-                <span className="text-xs text-white flex-1">{getCountryName(d.name)}</span>
-                <span className={`text-sm font-bold ${d.ga === 0 ? "text-accent-green" : "text-white"}`}>{d.ga}</span>
-                <span className="text-[10px] text-muted w-10 text-right">{d.mp} jogos</span>
+                <TeamFlag name={d.name} size={24} />
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs text-white font-medium">{getCountryName(d.name)}</span>
+                  <span className="text-[10px] text-muted block">{d.mp} jogos</span>
+                </div>
+                <div className="text-center shrink-0">
+                  <span className={`text-sm font-bold ${d.ga === 0 ? "text-accent-green" : "text-white"}`}>{d.ga}</span>
+                  <span className="text-[8px] text-muted block">gols tom.</span>
+                </div>
               </motion.div>
             ))}
       </div>
