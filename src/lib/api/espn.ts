@@ -1,25 +1,7 @@
 const ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world";
 
-type ESPNStat = {
-  label: string;
-  displayValue: string;
-};
-
-type ESPNTeamStats = {
-  team: { displayName: string };
-  statistics: ESPNStat[];
-};
-
-type ESPNSummary = {
-  boxscore: {
-    teams: ESPNTeamStats[];
-  };
-};
-
-export type MatchDetailedStats = {
-  home: TeamMatchStats;
-  away: TeamMatchStats;
-};
+type ESPNStat = { label: string; displayValue: string };
+type ESPNTeamStats = { team: { displayName: string }; statistics: ESPNStat[] };
 
 export type TeamMatchStats = {
   possession: number;
@@ -35,6 +17,42 @@ export type TeamMatchStats = {
   interceptions: number;
   yellowCards: number;
   redCards: number;
+};
+
+export type MatchDetailedStats = {
+  home: TeamMatchStats;
+  away: TeamMatchStats;
+};
+
+export type ESPNPlayer = {
+  name: string;
+  shortName: string;
+  jersey: string;
+  position: string;
+  starter: boolean;
+  subbedIn: boolean;
+  subbedOut: boolean;
+  photo: string | null;
+};
+
+export type ESPNLineup = {
+  teamName: string;
+  formation: string;
+  starters: ESPNPlayer[];
+  subs: ESPNPlayer[];
+};
+
+export type ESPNEvent = {
+  minute: string;
+  type: string;
+  players: string[];
+};
+
+export type ESPNMatchData = {
+  stats: MatchDetailedStats | null;
+  homeLineup: ESPNLineup | null;
+  awayLineup: ESPNLineup | null;
+  events: ESPNEvent[];
 };
 
 function parseStat(stats: ESPNStat[], label: string): number {
@@ -62,49 +80,129 @@ function parseTeamStats(stats: ESPNStat[]): TeamMatchStats {
   };
 }
 
+function parseRoster(roster: {
+  team?: { displayName?: string };
+  formation?: string;
+  roster?: {
+    starter?: boolean;
+    subbedIn?: boolean;
+    jersey?: string;
+    position?: { abbreviation?: string };
+    athlete?: {
+      displayName?: string;
+      shortName?: string;
+      headshot?: { href?: string };
+    };
+  }[];
+}): ESPNLineup | null {
+  if (!roster?.roster) return null;
+
+  const players = roster.roster.map((p) => ({
+    name: p.athlete?.displayName || "?",
+    shortName: p.athlete?.shortName || p.athlete?.displayName || "?",
+    jersey: p.jersey || "?",
+    position: p.position?.abbreviation || "?",
+    starter: !!p.starter,
+    subbedIn: !!p.subbedIn,
+    subbedOut: false,
+    photo: p.athlete?.headshot?.href || null,
+  }));
+
+  // Mark subbed out starters
+  const subbedInNames = new Set(players.filter((p) => p.subbedIn).map((p) => p.name));
+  const starterCount = players.filter((p) => p.starter).length;
+  if (subbedInNames.size > 0 && starterCount > 0) {
+    players.forEach((p) => {
+      if (p.starter && !p.subbedIn) {
+        // Keep as is
+      }
+    });
+  }
+
+  return {
+    teamName: roster.team?.displayName || "?",
+    formation: roster.formation || "4-3-3",
+    starters: players.filter((p) => p.starter),
+    subs: players.filter((p) => !p.starter && p.subbedIn),
+  };
+}
+
+async function findESPNEventId(homeTeam: string, awayTeam: string, matchDate: Date | string): Promise<string | null> {
+  const date = new Date(matchDate);
+  const dateStr = date.getFullYear().toString() + String(date.getMonth() + 1).padStart(2, "0") + String(date.getDate()).padStart(2, "0");
+
+  const res = await fetch(`${ESPN_BASE}/scoreboard?dates=${dateStr}`, { next: { revalidate: 300 } });
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const event = data.events?.find((e: { shortName: string }) => {
+    const sn = e.shortName.toUpperCase();
+    const h = homeTeam.toUpperCase().substring(0, 3);
+    const a = awayTeam.toUpperCase().substring(0, 3);
+    return sn.includes(h) || sn.includes(a);
+  });
+
+  return event?.id || null;
+}
+
+export async function getESPNMatchData(
+  homeTeam: string,
+  awayTeam: string,
+  matchDate: Date | string
+): Promise<ESPNMatchData | null> {
+  try {
+    const eventId = await findESPNEventId(homeTeam, awayTeam, matchDate);
+    if (!eventId) return null;
+
+    const res = await fetch(`${ESPN_BASE}/summary?event=${eventId}`, { next: { revalidate: 60 } });
+    if (!res.ok) return null;
+
+    const summary = await res.json();
+
+    // Stats
+    const teams = summary.boxscore?.teams;
+    let stats: MatchDetailedStats | null = null;
+    if (teams?.length >= 2) {
+      stats = {
+        home: parseTeamStats(teams[0].statistics || []),
+        away: parseTeamStats(teams[1].statistics || []),
+      };
+    }
+
+    // Lineups
+    const rosters = summary.rosters;
+    const homeLineup = rosters?.[0] ? parseRoster(rosters[0]) : null;
+    const awayLineup = rosters?.[1] ? parseRoster(rosters[1]) : null;
+
+    // Events (goals, subs, cards)
+    const events: ESPNEvent[] = [];
+    summary.keyEvents?.forEach((e: {
+      clock?: { displayValue?: string };
+      type?: { text?: string };
+      participants?: { athlete?: { displayName?: string }; type?: string }[];
+    }) => {
+      const type = e.type?.text || "";
+      if (type.includes("Goal") || type.includes("Substitution") || type.includes("Yellow") || type.includes("Red Card")) {
+        events.push({
+          minute: e.clock?.displayValue || "",
+          type,
+          players: e.participants?.map((p) => p.athlete?.displayName || "").filter(Boolean) || [],
+        });
+      }
+    });
+
+    return { stats, homeLineup, awayLineup, events };
+  } catch {
+    return null;
+  }
+}
+
+// Keep backward compatible
 export async function getESPNMatchStats(
   homeTeam: string,
   awayTeam: string,
   matchDate: Date | string
 ): Promise<MatchDetailedStats | null> {
-  try {
-    const date = new Date(matchDate);
-    const dateStr =
-      date.getFullYear().toString() +
-      String(date.getMonth() + 1).padStart(2, "0") +
-      String(date.getDate()).padStart(2, "0");
-
-    const res = await fetch(`${ESPN_BASE}/scoreboard?dates=${dateStr}`, {
-      next: { revalidate: 300 },
-    });
-    if (!res.ok) return null;
-
-    const data = await res.json();
-
-    const event = data.events?.find((e: { shortName: string }) => {
-      const sn = e.shortName.toUpperCase();
-      const h = homeTeam.toUpperCase().substring(0, 3);
-      const a = awayTeam.toUpperCase().substring(0, 3);
-      return sn.includes(h) || sn.includes(a);
-    });
-
-    if (!event) return null;
-
-    const summaryRes = await fetch(`${ESPN_BASE}/summary?event=${event.id}`, {
-      next: { revalidate: 60 },
-    });
-    if (!summaryRes.ok) return null;
-
-    const summary: ESPNSummary = await summaryRes.json();
-    const teams = summary.boxscore?.teams;
-
-    if (!teams || teams.length < 2) return null;
-
-    return {
-      home: parseTeamStats(teams[0].statistics || []),
-      away: parseTeamStats(teams[1].statistics || []),
-    };
-  } catch {
-    return null;
-  }
+  const data = await getESPNMatchData(homeTeam, awayTeam, matchDate);
+  return data?.stats || null;
 }

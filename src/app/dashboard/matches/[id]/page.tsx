@@ -11,7 +11,7 @@ import { TeamForm } from "@/components/analysis/team-form";
 import { StatComparison } from "@/components/analysis/stat-comparison";
 import { PredictionForm } from "@/components/predictions/prediction-form";
 import { getCountryName } from "@/lib/country-codes";
-import { getESPNMatchStats } from "@/lib/api/espn";
+import { getESPNMatchData } from "@/lib/api/espn";
 
 export default async function MatchAnalysisPage({
   params,
@@ -36,12 +36,13 @@ export default async function MatchAnalysisPage({
     );
   }
 
-  const [analysis, espnStats] = await Promise.all([
+  const [analysis, espnData] = await Promise.all([
     getFullMatchAnalysis(matchId),
     match.status === "finished"
-      ? getESPNMatchStats(match.homeTeam, match.awayTeam, match.matchDate)
+      ? getESPNMatchData(match.homeTeam, match.awayTeam, match.matchDate)
       : Promise.resolve(null),
   ]);
+  const espnStats = espnData?.stats || null;
   const userPrediction = await getUserPredictionForMatch(session.user.id, matchId);
 
   const date = match.matchDate;
@@ -314,86 +315,149 @@ export default async function MatchAnalysisPage({
             </div>
           )}
 
-          {/* Formations */}
-          {(analysis.homePlayers.length > 0 || analysis.awayPlayers.length > 0) && (
+          {/* ESPN Real Lineups (finished matches) */}
+          {espnData && (espnData.homeLineup || espnData.awayLineup) && (
             <div>
-              <h2 className="text-lg font-semibold text-white mb-1">
-                Escalações Prováveis
-              </h2>
-              <p className="text-xs text-muted mb-4">Baseado nos elencos convocados</p>
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="text-lg font-semibold text-white">Escalações Oficiais</h2>
+                <span className="text-[9px] text-muted">Fonte: ESPN</span>
+              </div>
+              <p className="text-xs text-muted mb-4">Escalações confirmadas da partida</p>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {analysis.homePlayers.length > 0 && (
-                  <FormationPitch
-                    formation={analysis.homeFormation}
-                    players={analysis.homePlayers}
-                    teamName={getCountryName(match.homeTeam)}
-                    side="home"
-                  />
-                )}
-                {analysis.awayPlayers.length > 0 && (
-                  <FormationPitch
-                    formation={analysis.awayFormation}
-                    players={analysis.awayPlayers}
-                    teamName={getCountryName(match.awayTeam)}
-                    side="away"
-                  />
+                {[espnData.homeLineup, espnData.awayLineup].map((lineup, teamIdx) =>
+                  lineup && (
+                    <div key={teamIdx} className="card p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <TeamFlag name={teamIdx === 0 ? match.homeTeam : match.awayTeam} size={18} />
+                          <h3 className="text-sm font-semibold text-white">
+                            {getCountryName(teamIdx === 0 ? match.homeTeam : match.awayTeam)}
+                          </h3>
+                        </div>
+                        <span className="text-[10px] text-accent-purple font-medium">{lineup.formation}</span>
+                      </div>
+
+                      <p className="text-[10px] text-muted uppercase tracking-wider mb-2">Titulares</p>
+                      <div className="space-y-1">
+                        {lineup.starters.map((p, i) => (
+                          <div key={i} className="flex items-center justify-between py-1 border-b border-border/30 last:border-0">
+                            <div className="flex items-center gap-2">
+                              {p.photo ? (
+                                <img src={p.photo} alt="" className="w-6 h-6 rounded-full object-cover object-top" />
+                              ) : (
+                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                                  teamIdx === 0 ? "bg-accent-green/10 text-accent-green" : "bg-accent-purple/10 text-accent-purple"
+                                }`}>
+                                  {p.jersey}
+                                </span>
+                              )}
+                              <span className="text-xs text-white">{p.name}</span>
+                            </div>
+                            <span className="text-[10px] text-muted">{p.position}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {lineup.subs.length > 0 && (
+                        <>
+                          <p className="text-[10px] text-muted uppercase tracking-wider mt-3 mb-2">Substituições</p>
+                          <div className="space-y-1">
+                            {lineup.subs.map((p, i) => (
+                              <div key={i} className="flex items-center justify-between py-1 border-b border-border/30 last:border-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-accent-green text-[10px]">↑</span>
+                                  {p.photo ? (
+                                    <img src={p.photo} alt="" className="w-5 h-5 rounded-full object-cover object-top" />
+                                  ) : (
+                                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold bg-surface-2 text-muted">
+                                      {p.jersey}
+                                    </span>
+                                  )}
+                                  <span className="text-xs text-muted-light">{p.name}</span>
+                                </div>
+                                <span className="text-[10px] text-muted">{p.position}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )
                 )}
               </div>
             </div>
           )}
 
-          {/* Squad Lists */}
-          {(analysis.homePlayers.length > 0 || analysis.awayPlayers.length > 0) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                { players: analysis.homePlayers, team: match.homeTeam, rating: analysis.homeRating, colorClass: "text-accent-green bg-accent-green/10" },
-                { players: analysis.awayPlayers, team: match.awayTeam, rating: analysis.awayRating, colorClass: "text-accent-purple bg-accent-purple/10" },
-              ].map(
-                ({ players, team, rating, colorClass }) =>
-                  players.length > 0 && (
-                    <div
-                      key={team}
-                      className="rounded-xl bg-card-bg border border-card-border p-5"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-semibold text-white">
-                          {team} — Titulares
-                        </h3>
-                        {rating && (
-                          <span className="text-xs font-bold text-accent-yellow">
-                            Rating {rating.toFixed(1)}
+          {/* Match Events - Goals, Subs, Cards */}
+          {espnData && espnData.events.length > 0 && (
+            <div className="card p-5">
+              <h2 className="text-sm font-semibold text-white mb-3">Eventos da Partida</h2>
+              <div className="space-y-2">
+                {espnData.events.map((evt, i) => {
+                  const isGoal = evt.type.includes("Goal");
+                  const isSub = evt.type.includes("Substitution");
+                  const isCard = evt.type.includes("Yellow") || evt.type.includes("Red");
+                  const icon = isGoal ? "⚽" : isSub ? "🔄" : isCard ? (evt.type.includes("Red") ? "🟥" : "🟨") : "•";
+
+                  return (
+                    <div key={i} className="flex items-center gap-3 py-1.5 border-b border-border/30 last:border-0">
+                      <span className="text-xs text-accent-purple font-mono w-10 shrink-0 text-right">{evt.minute}</span>
+                      <span className="text-sm shrink-0">{icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className={`text-xs ${isGoal ? "text-white font-semibold" : "text-muted-light"}`}>
+                          {evt.type.replace("Penalty - ", "Pênalti ")}
+                        </span>
+                        {evt.players.length > 0 && (
+                          <span className="text-xs text-muted ml-1">
+                            — {evt.players.join(", ")}
                           </span>
                         )}
                       </div>
-                      <div className="space-y-1.5">
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Probable Lineups (future matches - from squad data) */}
+          {!espnData && (analysis.homePlayers.length > 0 || analysis.awayPlayers.length > 0) && (
+            <div>
+              <h2 className="text-lg font-semibold text-white mb-1">Escalações Prováveis</h2>
+              <p className="text-xs text-muted mb-4">Baseado nos elencos convocados</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {analysis.homePlayers.length > 0 && (
+                  <FormationPitch formation={analysis.homeFormation} players={analysis.homePlayers} teamName={getCountryName(match.homeTeam)} side="home" />
+                )}
+                {analysis.awayPlayers.length > 0 && (
+                  <FormationPitch formation={analysis.awayFormation} players={analysis.awayPlayers} teamName={getCountryName(match.awayTeam)} side="away" />
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                {[
+                  { players: analysis.homePlayers, team: match.homeTeam, colorClass: "text-accent-green bg-accent-green/10" },
+                  { players: analysis.awayPlayers, team: match.awayTeam, colorClass: "text-accent-purple bg-accent-purple/10" },
+                ].map(({ players, team, colorClass }) =>
+                  players.length > 0 && (
+                    <div key={team} className="card p-4">
+                      <h3 className="text-sm font-semibold text-white mb-2">{getCountryName(team)} — Titulares</h3>
+                      <div className="space-y-1">
                         {players.map((p, idx) => (
-                          <div
-                            key={p.id || idx}
-                            className="flex items-center justify-between text-xs"
-                          >
+                          <div key={idx} className="flex items-center justify-between text-xs py-1 border-b border-border/30 last:border-0">
                             <div className="flex items-center gap-2">
-                              <span
-                                className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold ${colorClass}`}
-                              >
-                                {p.number || "?"}
-                              </span>
+                              <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold ${colorClass}`}>{p.number || "?"}</span>
                               <span className="text-white">{p.name}</span>
-                              {p.rating && (
-                                <span className="text-accent-yellow text-[10px]">
-                                  {p.rating.toFixed(1)}
-                                </span>
-                              )}
                             </div>
-                            <div className="flex items-center gap-2 text-muted">
-                              <span>{p.position}</span>
-                              {p.club && <span>· {p.club}</span>}
-                            </div>
+                            <span className="text-muted">{p.position}</span>
                           </div>
                         ))}
                       </div>
                     </div>
                   )
-              )}
+                )}
+              </div>
             </div>
           )}
         </>
