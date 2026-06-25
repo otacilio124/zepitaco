@@ -8,7 +8,7 @@ import { Countdown } from "./ui/countdown";
 import { TeamFlag } from "./ui/team-flag";
 import { NotificationToggle } from "./notifications/notification-toggle";
 import { MyTeamCard } from "./my-team-card";
-import { matchesCountryName, getCountryCode } from "@/lib/country-codes";
+import { matchesCountryName, getCountryCode, getCountryName } from "@/lib/country-codes";
 import { PerformanceRing } from "./performance-ring";
 import { TopScorers } from "./top-scorers";
 
@@ -53,7 +53,7 @@ function MatchRow({ match }: { match: Match }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <TeamFlag name={match.homeTeam} size={22} />
-          <span className="text-sm text-white truncate">{match.homeTeam}</span>
+          <span className="text-sm text-white truncate">{getCountryName(match.homeTeam)}</span>
         </div>
         <span className="text-xs text-muted px-3 shrink-0">
           {match.status === "finished" ? (
@@ -61,7 +61,7 @@ function MatchRow({ match }: { match: Match }) {
           ) : "vs"}
         </span>
         <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-          <span className="text-sm text-white truncate text-right">{match.awayTeam}</span>
+          <span className="text-sm text-white truncate text-right">{getCountryName(match.awayTeam)}</span>
           <TeamFlag name={match.awayTeam} size={22} />
         </div>
       </div>
@@ -88,12 +88,12 @@ function HeroMatch({ match }: { match: Match }) {
         <div className="flex items-center justify-between">
           <div className="flex flex-col items-center gap-2 flex-1">
             <TeamFlag name={match.homeTeam} size={44} />
-            <span className="text-sm font-semibold text-white">{match.homeTeam}</span>
+            <span className="text-sm font-semibold text-white">{getCountryName(match.homeTeam)}</span>
           </div>
           <span className="text-lg text-muted px-4">vs</span>
           <div className="flex flex-col items-center gap-2 flex-1">
             <TeamFlag name={match.awayTeam} size={44} />
-            <span className="text-sm font-semibold text-white">{match.awayTeam}</span>
+            <span className="text-sm font-semibold text-white">{getCountryName(match.awayTeam)}</span>
           </div>
         </div>
 
@@ -120,7 +120,7 @@ function PredictionItem({ pred }: { pred: Prediction }) {
   return (
     <div className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
       <span className="text-xs text-muted-light truncate flex-1 mr-3">
-        {match.homeTeam} vs {match.awayTeam}
+        {getCountryName(match.homeTeam)} vs {getCountryName(match.awayTeam)}
       </span>
       <div className="flex items-center gap-2 shrink-0">
         <span className="text-xs text-muted font-mono">{prediction.predictedHomeScore}-{prediction.predictedAwayScore}</span>

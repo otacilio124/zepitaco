@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getUserStats, getUserPredictions, getLeaderboard } from "@/lib/queries";
 import { getUserPrefs } from "@/lib/onboarding-actions";
-import { getCountryCode } from "@/lib/country-codes";
+import { getCountryCode, getCountryName } from "@/lib/country-codes";
 import { LocalTime } from "@/components/ui/local-time";
 
 export default async function ProfilePage() {
@@ -141,7 +141,7 @@ export default async function ProfilePage() {
               >
                 <div className="flex-1 min-w-0 mr-3">
                   <span className="text-xs text-white truncate block">
-                    {match.homeTeam} vs {match.awayTeam}
+                    {getCountryName(match.homeTeam)} vs {getCountryName(match.awayTeam)}
                   </span>
                   <LocalTime date={match.matchDate} format="date" className="text-[10px] text-muted" />
                 </div>

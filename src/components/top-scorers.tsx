@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { TeamFlag } from "./ui/team-flag";
+import { getCountryName } from "@/lib/country-codes";
 
 type Scorer = {
   player: { id: number; name: string };
@@ -77,7 +78,7 @@ export function TopScorers() {
                 <TeamFlag name={s.team.shortName} size={18} />
                 <div className="flex-1 min-w-0">
                   <span className="text-xs text-white truncate block">{s.player.name}</span>
-                  <span className="text-[10px] text-muted">{s.team.shortName}</span>
+                  <span className="text-[10px] text-muted">{getCountryName(s.team.shortName)}</span>
                 </div>
                 <span className="text-sm font-bold text-white">{s.goals}</span>
                 <span className="text-[10px] text-muted w-6 text-center">{s.assists || 0}a</span>
@@ -95,7 +96,7 @@ export function TopScorers() {
                   {i + 1}
                 </span>
                 <TeamFlag name={d.name} size={18} />
-                <span className="text-xs text-white flex-1">{d.name}</span>
+                <span className="text-xs text-white flex-1">{getCountryName(d.name)}</span>
                 <span className={`text-sm font-bold ${d.ga === 0 ? "text-accent-green" : "text-white"}`}>{d.ga}</span>
                 <span className="text-[10px] text-muted w-10 text-right">{d.mp} jogos</span>
               </motion.div>

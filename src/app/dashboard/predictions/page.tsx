@@ -5,6 +5,7 @@ import { MatchCard } from "@/components/matches/match-card";
 import { PredictionForm } from "@/components/predictions/prediction-form";
 import { LocalTime } from "@/components/ui/local-time";
 import { ScoreBar } from "@/components/stats/score-bar";
+import { getCountryName } from "@/lib/country-codes";
 
 export default async function PredictionsPage({
   searchParams,
@@ -90,7 +91,7 @@ export default async function PredictionsPage({
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-white font-medium">{match.homeTeam}</span>
+                  <span className="text-white font-medium">{getCountryName(match.homeTeam)}</span>
                   <div className="text-center">
                     <div className="text-xs text-muted mb-0.5">Seu palpite</div>
                     <span className="text-accent-green font-bold">
@@ -101,7 +102,7 @@ export default async function PredictionsPage({
                       {prediction.predictedAwayScore}
                     </span>
                   </div>
-                  <span className="text-white font-medium">{match.awayTeam}</span>
+                  <span className="text-white font-medium">{getCountryName(match.awayTeam)}</span>
                 </div>
 
                 {match.status === "finished" && match.homeScore !== null && match.awayScore !== null && (

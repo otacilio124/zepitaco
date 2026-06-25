@@ -2,6 +2,7 @@ import { getMatchesByDate as getMatchesByDay } from "@/lib/queries";
 import Link from "next/link";
 import { TeamFlag } from "@/components/ui/team-flag";
 import { LocalTime } from "@/components/ui/local-time";
+import { getCountryName } from "@/lib/country-codes";
 
 function generateDays(): { date: Date; label: string; key: string }[] {
   const days = [];
@@ -115,7 +116,7 @@ export default async function CalendarPage({
                   <div className="flex items-center gap-2.5 flex-1 min-w-0">
                     <TeamFlag name={match.homeTeam} size={28} />
                     <span className="text-sm font-semibold text-white truncate">
-                      {match.homeTeam}
+                      {getCountryName(match.homeTeam)}
                     </span>
                   </div>
                   <div className="px-4 text-center shrink-0">
@@ -129,7 +130,7 @@ export default async function CalendarPage({
                   </div>
                   <div className="flex items-center gap-2.5 flex-1 min-w-0 justify-end">
                     <span className="text-sm font-semibold text-white truncate text-right">
-                      {match.awayTeam}
+                      {getCountryName(match.awayTeam)}
                     </span>
                     <TeamFlag name={match.awayTeam} size={28} />
                   </div>

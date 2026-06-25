@@ -1,5 +1,6 @@
 import { getWorldCupStandings } from "@/lib/api/football-data";
 import { TeamFlag } from "@/components/ui/team-flag";
+import { getCountryName } from "@/lib/country-codes";
 
 type TableEntry = {
   position: number;
@@ -58,7 +59,7 @@ function GroupTable({ groupName, table }: { groupName: string; table: TableEntry
               {!qualifies && <span className="h-1.5 w-1.5 shrink-0" />}
               <TeamFlag name={entry.team.shortName || entry.team.name} size={22} />
               <span className="text-xs font-medium text-white truncate">
-                {entry.team.shortName || entry.team.tla}
+                {getCountryName(entry.team.shortName || entry.team.name)}
               </span>
             </div>
             <span className="text-xs text-muted text-center">{entry.playedGames}</span>

@@ -10,6 +10,7 @@ import { FormationPitch } from "@/components/analysis/formation-pitch";
 import { TeamForm } from "@/components/analysis/team-form";
 import { StatComparison } from "@/components/analysis/stat-comparison";
 import { PredictionForm } from "@/components/predictions/prediction-form";
+import { getCountryName } from "@/lib/country-codes";
 
 export default async function MatchAnalysisPage({
   params,
@@ -74,7 +75,7 @@ export default async function MatchAnalysisPage({
           <div className="flex flex-col items-center gap-2 flex-1">
             <TeamFlag name={match.homeTeam} size={56} />
             <span className="text-lg font-bold text-white text-center">
-              {match.homeTeam}
+              {getCountryName(match.homeTeam)}
             </span>
             {analysis && (
               <span className="text-xs text-muted">
@@ -112,7 +113,7 @@ export default async function MatchAnalysisPage({
           <div className="flex flex-col items-center gap-2 flex-1">
             <TeamFlag name={match.awayTeam} size={56} />
             <span className="text-lg font-bold text-white text-center">
-              {match.awayTeam}
+              {getCountryName(match.awayTeam)}
             </span>
             {analysis && (
               <span className="text-xs text-muted">
@@ -145,14 +146,14 @@ export default async function MatchAnalysisPage({
                 <div className="text-5xl font-bold text-accent-green">
                   {analysis.analysis.predictedHomeScore}
                 </div>
-                <div className="text-xs text-muted mt-1">{match.homeTeam}</div>
+                <div className="text-xs text-muted mt-1">{getCountryName(match.homeTeam)}</div>
               </div>
               <div className="text-2xl text-muted">x</div>
               <div className="text-center">
                 <div className="text-5xl font-bold text-accent-purple">
                   {analysis.analysis.predictedAwayScore}
                 </div>
-                <div className="text-xs text-muted mt-1">{match.awayTeam}</div>
+                <div className="text-xs text-muted mt-1">{getCountryName(match.awayTeam)}</div>
               </div>
             </div>
 
@@ -160,8 +161,8 @@ export default async function MatchAnalysisPage({
               homeWin={analysis.analysis.homeWinProbability}
               draw={analysis.analysis.drawProbability}
               awayWin={analysis.analysis.awayWinProbability}
-              homeLabel={match.homeTeam}
-              awayLabel={match.awayTeam}
+              homeLabel={getCountryName(match.homeTeam)}
+              awayLabel={getCountryName(match.awayTeam)}
             />
           </div>
 
@@ -214,13 +215,13 @@ export default async function MatchAnalysisPage({
             <div className="rounded-xl bg-card-bg border border-card-border p-5">
               <TeamForm
                 form={analysis.homeStats?.formLast5 ?? null}
-                teamName={match.homeTeam}
+                teamName={getCountryName(match.homeTeam)}
               />
             </div>
             <div className="rounded-xl bg-card-bg border border-card-border p-5">
               <TeamForm
                 form={analysis.awayStats?.formLast5 ?? null}
-                teamName={match.awayTeam}
+                teamName={getCountryName(match.awayTeam)}
               />
             </div>
           </div>
@@ -262,7 +263,7 @@ export default async function MatchAnalysisPage({
                   <FormationPitch
                     formation={analysis.homeFormation}
                     players={analysis.homePlayers}
-                    teamName={match.homeTeam}
+                    teamName={getCountryName(match.homeTeam)}
                     side="home"
                   />
                 )}
@@ -270,7 +271,7 @@ export default async function MatchAnalysisPage({
                   <FormationPitch
                     formation={analysis.awayFormation}
                     players={analysis.awayPlayers}
-                    teamName={match.awayTeam}
+                    teamName={getCountryName(match.awayTeam)}
                     side="away"
                   />
                 )}
@@ -352,8 +353,8 @@ export default async function MatchAnalysisPage({
           </h2>
           <PredictionForm
             matchId={match.matchId}
-            homeTeam={match.homeTeam}
-            awayTeam={match.awayTeam}
+            homeTeam={getCountryName(match.homeTeam)}
+            awayTeam={getCountryName(match.awayTeam)}
             existingHome={userPrediction?.predictedHomeScore}
             existingAway={userPrediction?.predictedAwayScore}
           />

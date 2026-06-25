@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { TeamFlag } from "@/components/ui/team-flag";
 import { LocalTime } from "@/components/ui/local-time";
+import { getCountryName } from "@/lib/country-codes";
 
 type RealtimeMatch = {
   id: number;
@@ -48,7 +49,7 @@ function LiveMatchCard({ match, index }: { match: RealtimeMatch; index: number }
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <TeamFlag name={match.homeTeam} size={32} />
-            <span className="text-sm font-semibold text-white truncate">{match.homeTeam}</span>
+            <span className="text-sm font-semibold text-white truncate">{getCountryName(match.homeTeam)}</span>
           </div>
           <motion.div
             key={`${match.homeScore}-${match.awayScore}`}
@@ -61,7 +62,7 @@ function LiveMatchCard({ match, index }: { match: RealtimeMatch; index: number }
             </span>
           </motion.div>
           <div className="flex items-center gap-3 flex-1 min-w-0 justify-end">
-            <span className="text-sm font-semibold text-white truncate text-right">{match.awayTeam}</span>
+            <span className="text-sm font-semibold text-white truncate text-right">{getCountryName(match.awayTeam)}</span>
             <TeamFlag name={match.awayTeam} size={32} />
           </div>
         </div>
@@ -81,7 +82,7 @@ function TodayMatchCard({ match }: { match: RealtimeMatch }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <TeamFlag name={match.homeTeam} size={22} />
-          <span className="text-xs text-white truncate">{match.homeTeam}</span>
+          <span className="text-xs text-white truncate">{getCountryName(match.homeTeam)}</span>
         </div>
         <span className="text-xs px-3 shrink-0">
           {isFinished || match.status === "IN_PLAY" || match.status === "PAUSED" ? (
@@ -91,7 +92,7 @@ function TodayMatchCard({ match }: { match: RealtimeMatch }) {
           )}
         </span>
         <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-          <span className="text-xs text-white truncate text-right">{match.awayTeam}</span>
+          <span className="text-xs text-white truncate text-right">{getCountryName(match.awayTeam)}</span>
           <TeamFlag name={match.awayTeam} size={22} />
         </div>
       </div>
