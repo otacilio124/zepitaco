@@ -32,51 +32,35 @@ export type MatchAnalysisResult = {
     homeWinProbability: number;
     drawProbability: number;
     awayWinProbability: number;
-    homePossession: number;
-    awayPossession: number;
-    homeShots: number;
-    awayShots: number;
+    homeAvgGoalsScored: number;
+    awayAvgGoalsScored: number;
+    homeAvgGoalsConceded: number;
+    awayAvgGoalsConceded: number;
     keyFactors: string[];
     confidenceLevel: "high" | "medium" | "low";
     probableScores: { home: number; away: number; probability: number }[];
   };
-  lineupSource: "api" | "seed" | "none";
+  lineupSource: "seed" | "none";
 };
 
-function mapSeedPlayersToLineup(
-  players: (typeof teamPlayers.$inferSelect)[]
-): LineupPlayer[] {
-  return players.map((p) => ({
-    id: 0,
-    name: p.name,
-    position: p.position,
-    number: p.number || 0,
-    age: p.age || 0,
-    club: p.club || "",
-    rating: null,
-    marketValue: 0,
-    layoutX: 0,
-    layoutY: 0,
-  }));
-}
-
 function calculateFormScore(form: string | null): number {
-  if (!form) return 0.5;
+  if (!form || form === "-----") return 0.5;
   let score = 0;
   const weights = [0.35, 0.25, 0.2, 0.12, 0.08];
   for (let i = 0; i < Math.min(form.length, 5); i++) {
     const ch = form[i];
+    if (ch === "-") continue;
     score += (ch === "W" ? 1 : ch === "D" ? 0.4 : 0) * weights[i];
   }
   return score;
 }
 
-function estimateGoals(
-  attackStrength: number,
-  defenseWeakness: number,
-  avgGoals: number
-): number {
-  return Math.max(0, +(attackStrength * defenseWeakness * avgGoals).toFixed(1));
+function poisson(lambda: number, k: number): number {
+  let result = Math.exp(-lambda);
+  for (let i = 1; i <= k; i++) {
+    result *= lambda / i;
+  }
+  return result;
 }
 
 export function generateAnalysis(
@@ -85,103 +69,100 @@ export function generateAnalysis(
   homeRanking: number | null,
   awayRanking: number | null
 ) {
-  const avgGoalsPerGame = 2.7;
-  const homeAdvantage = 1.15;
+  const WC_AVG_GOALS = 2.7;
+  const HOME_ADVANTAGE = 1.12;
 
-  const hMP = homeStats?.matchesPlayed || 10;
-  const aMP = awayStats?.matchesPlayed || 10;
-  const hGS = homeStats?.goalsScored || 12;
-  const hGC = homeStats?.goalsConceded || 10;
-  const aGS = awayStats?.goalsScored || 12;
-  const aGC = awayStats?.goalsConceded || 10;
+  const hMP = homeStats?.matchesPlayed || 0;
+  const aMP = awayStats?.matchesPlayed || 0;
+  const hGS = homeStats?.goalsScored || 0;
+  const hGC = homeStats?.goalsConceded || 0;
+  const aGS = awayStats?.goalsScored || 0;
+  const aGC = awayStats?.goalsConceded || 0;
 
-  const avgGS = (hGS / hMP + aGS / aMP) / 2;
-  const avgGC = (hGC / hMP + aGC / aMP) / 2;
+  // Real averages per game
+  const homeAvgGS = hMP > 0 ? hGS / hMP : WC_AVG_GOALS / 2;
+  const homeAvgGC = hMP > 0 ? hGC / hMP : WC_AVG_GOALS / 2;
+  const awayAvgGS = aMP > 0 ? aGS / aMP : WC_AVG_GOALS / 2;
+  const awayAvgGC = aMP > 0 ? aGC / aMP : WC_AVG_GOALS / 2;
 
-  const homeAttack = ((hGS / hMP) / avgGS) * homeAdvantage;
-  const homeDefense = (aGC / aMP) / avgGC;
-  const awayAttack = (aGS / aMP) / avgGS;
-  const awayDefense = (hGC / hMP) / avgGC;
+  // Attack/defense strength relative to tournament average
+  const tournamentAvgGS = WC_AVG_GOALS / 2;
 
-  const predictedHome = estimateGoals(homeAttack, awayDefense, avgGoalsPerGame / 2);
-  const predictedAway = estimateGoals(awayAttack, homeDefense, avgGoalsPerGame / 2);
+  const homeAttackStr = hMP > 0 ? homeAvgGS / tournamentAvgGS : 1;
+  const homeDefenseStr = hMP > 0 ? homeAvgGC / tournamentAvgGS : 1;
+  const awayAttackStr = aMP > 0 ? awayAvgGS / tournamentAvgGS : 1;
+  const awayDefenseStr = aMP > 0 ? awayAvgGC / tournamentAvgGS : 1;
 
-  const homeFormScore = calculateFormScore(homeStats?.formLast5 ?? null);
-  const awayFormScore = calculateFormScore(awayStats?.formLast5 ?? null);
+  // Expected goals (Poisson lambda)
+  const lambdaHome = Math.max(0.3, tournamentAvgGS * homeAttackStr * awayDefenseStr * HOME_ADVANTAGE);
+  const lambdaAway = Math.max(0.2, tournamentAvgGS * awayAttackStr * homeDefenseStr);
 
-  const rankingDiff = ((awayRanking || 50) - (homeRanking || 50)) / 100;
+  const predictedHome = +lambdaHome.toFixed(2);
+  const predictedAway = +lambdaAway.toFixed(2);
 
-  const homeStrength = 0.4 * (hGS / hMP - hGC / hMP) / 2 + 0.3 * homeFormScore + 0.2 * rankingDiff + 0.1 * 0.15;
-  const awayStrength = 0.4 * (aGS / aMP - aGC / aMP) / 2 + 0.3 * awayFormScore + 0.2 * (-rankingDiff);
-
-  let homeWin = Math.max(0.05, Math.min(0.85, 0.45 + (homeStrength - awayStrength) * 1.5));
-  let draw = Math.max(0.1, 0.28 - Math.abs(homeStrength - awayStrength) * 0.5);
-  let awayWin = Math.max(0.05, 1 - homeWin - draw);
-
-  const sum = homeWin + draw + awayWin;
-  homeWin = Math.round((homeWin / sum) * 100);
-  draw = Math.round((draw / sum) * 100);
-  awayWin = 100 - homeWin - draw;
-
-  const hPoss = homeStats?.avgPossession || 50;
-  const aPoss = awayStats?.avgPossession || 50;
-  const totalPoss = hPoss + aPoss;
-  const homePossession = Math.round((hPoss / totalPoss) * 100);
-  const awayPossession = 100 - homePossession;
-
-  const homeShots = +(((homeStats?.avgShotsPerGame || 10) * homeAdvantage * (awayDefense * 0.5 + 0.5)).toFixed(1));
-  const awayShots = +((awayStats?.avgShotsPerGame || 10) * (homeDefense * 0.5 + 0.5)).toFixed(1);
-
-  const keyFactors: string[] = [];
-
-  if (homeRanking && awayRanking) {
-    if (homeRanking < awayRanking - 10)
-      keyFactors.push(`Mandante com ranking FIFA superior (#${homeRanking} vs #${awayRanking})`);
-    else if (awayRanking < homeRanking - 10)
-      keyFactors.push(`Visitante com ranking FIFA superior (#${awayRanking} vs #${homeRanking})`);
-  }
-
-  if (homeFormScore > 0.7) keyFactors.push("Mandante em excelente forma recente");
-  else if (homeFormScore < 0.3) keyFactors.push("Mandante em má fase");
-  if (awayFormScore > 0.7) keyFactors.push("Visitante em excelente forma recente");
-  else if (awayFormScore < 0.3) keyFactors.push("Visitante em má fase");
-
-  if (homeStats && homeStats.cleanSheets / hMP > 0.45) keyFactors.push("Defesa mandante muito sólida");
-  if (awayStats && awayStats.cleanSheets / aMP > 0.45) keyFactors.push("Defesa visitante muito sólida");
-
-  if (homeStats && hGS / hMP > 2.0) keyFactors.push("Ataque mandante altamente produtivo");
-  if (awayStats && aGS / aMP > 2.0) keyFactors.push("Ataque visitante altamente produtivo");
-
-  if (homePossession > 57) keyFactors.push("Mandante tende a dominar a posse de bola");
-  if (awayPossession > 57) keyFactors.push("Visitante tende a dominar a posse de bola");
-
-  keyFactors.push("Fator campo favorece o mandante");
-
-  const confidence = Math.abs(homeWin - awayWin);
-  const confidenceLevel = confidence > 35 ? "high" : confidence > 15 ? "medium" : "low";
-
-  // Poisson distribution for probable scores
-  function poisson(lambda: number, k: number): number {
-    let result = Math.exp(-lambda);
-    for (let i = 1; i <= k; i++) {
-      result *= lambda / i;
+  // Win probabilities via Poisson
+  let pHome = 0, pDraw = 0, pAway = 0;
+  for (let h = 0; h <= 8; h++) {
+    for (let a = 0; a <= 8; a++) {
+      const p = poisson(lambdaHome, h) * poisson(lambdaAway, a);
+      if (h > a) pHome += p;
+      else if (h === a) pDraw += p;
+      else pAway += p;
     }
-    return result;
   }
 
-  const lambdaHome = Math.max(0.5, predictedHome);
-  const lambdaAway = Math.max(0.3, predictedAway);
+  const total = pHome + pDraw + pAway;
+  let homeWin = Math.round((pHome / total) * 100);
+  let draw = Math.round((pDraw / total) * 100);
+  let awayWin = 100 - homeWin - draw;
 
+  // Probable scores
   const scoreProbs: { home: number; away: number; probability: number }[] = [];
-  for (let h = 0; h <= 5; h++) {
-    for (let a = 0; a <= 5; a++) {
+  for (let h = 0; h <= 6; h++) {
+    for (let a = 0; a <= 6; a++) {
       const prob = poisson(lambdaHome, h) * poisson(lambdaAway, a) * 100;
-      if (prob > 1) {
+      if (prob > 0.5) {
         scoreProbs.push({ home: h, away: a, probability: Math.round(prob * 10) / 10 });
       }
     }
   }
   const probableScores = scoreProbs.sort((a, b) => b.probability - a.probability).slice(0, 5);
+
+  // Form analysis
+  const homeFormScore = calculateFormScore(homeStats?.formLast5 ?? null);
+  const awayFormScore = calculateFormScore(awayStats?.formLast5 ?? null);
+
+  // Key factors - only based on REAL data
+  const keyFactors: string[] = [];
+
+  if (hMP > 0) {
+    keyFactors.push(`${homeAvgGS.toFixed(1)} gols/jogo marcados pelo mandante na Copa`);
+  }
+  if (aMP > 0) {
+    keyFactors.push(`${awayAvgGS.toFixed(1)} gols/jogo marcados pelo visitante na Copa`);
+  }
+
+  if (hMP > 0 && homeAvgGC === 0) keyFactors.push("Mandante não sofreu gols na Copa");
+  else if (hMP > 0 && homeAvgGC <= 0.5) keyFactors.push(`Mandante com defesa sólida (${homeAvgGC.toFixed(1)} gols sofridos/jogo)`);
+
+  if (aMP > 0 && awayAvgGC === 0) keyFactors.push("Visitante não sofreu gols na Copa");
+  else if (aMP > 0 && awayAvgGC <= 0.5) keyFactors.push(`Visitante com defesa sólida (${awayAvgGC.toFixed(1)} gols sofridos/jogo)`);
+
+  if (homeStats?.cleanSheets && hMP > 0) {
+    const csPct = Math.round((homeStats.cleanSheets / hMP) * 100);
+    if (csPct >= 50) keyFactors.push(`Mandante com ${homeStats.cleanSheets} clean sheets em ${hMP} jogos (${csPct}%)`);
+  }
+  if (awayStats?.cleanSheets && aMP > 0) {
+    const csPct = Math.round((awayStats.cleanSheets / aMP) * 100);
+    if (csPct >= 50) keyFactors.push(`Visitante com ${awayStats.cleanSheets} clean sheets em ${aMP} jogos (${csPct}%)`);
+  }
+
+  if (homeFormScore > 0.7) keyFactors.push(`Mandante em boa fase (${homeStats?.formLast5})`);
+  if (awayFormScore > 0.7) keyFactors.push(`Visitante em boa fase (${awayStats?.formLast5})`);
+  if (homeFormScore < 0.3 && hMP > 0) keyFactors.push(`Mandante em má fase (${homeStats?.formLast5})`);
+  if (awayFormScore < 0.3 && aMP > 0) keyFactors.push(`Visitante em má fase (${awayStats?.formLast5})`);
+
+  const confidence = hMP >= 2 && aMP >= 2 ? (Math.abs(homeWin - awayWin) > 30 ? "high" : Math.abs(homeWin - awayWin) > 15 ? "medium" : "low") : "low";
 
   return {
     predictedHomeScore: predictedHome,
@@ -189,29 +170,30 @@ export function generateAnalysis(
     homeWinProbability: homeWin,
     drawProbability: draw,
     awayWinProbability: awayWin,
-    homePossession,
-    awayPossession,
-    homeShots,
-    awayShots,
+    homeAvgGoalsScored: +homeAvgGS.toFixed(2),
+    awayAvgGoalsScored: +awayAvgGS.toFixed(2),
+    homeAvgGoalsConceded: +homeAvgGC.toFixed(2),
+    awayAvgGoalsConceded: +awayAvgGC.toFixed(2),
     keyFactors,
-    confidenceLevel: confidenceLevel as "high" | "medium" | "low",
+    confidenceLevel: confidence as "high" | "medium" | "low",
     probableScores,
   };
 }
 
 function makeVirtualTeam(name: string): typeof teams.$inferSelect {
   return {
-    id: 0,
-    name,
-    longName: name,
-    code: null,
-    logo: null,
-    country: name,
-    confederation: null,
-    fifaRanking: null,
-    formation: "4-3-3",
-    coach: null,
+    id: 0, name, longName: name, code: null, logo: null,
+    country: name, confederation: null, fifaRanking: null,
+    formation: "4-3-3", coach: null,
   };
+}
+
+function mapSeedPlayersToLineup(players: (typeof teamPlayers.$inferSelect)[]): LineupPlayer[] {
+  return players.map((p) => ({
+    id: 0, name: p.name, position: p.position, number: p.number || 0,
+    age: p.age || 0, club: p.club || "", rating: null, marketValue: 0,
+    layoutX: 0, layoutY: 0,
+  }));
 }
 
 export async function getFullMatchAnalysis(matchId: number): Promise<MatchAnalysisResult | null> {
@@ -219,12 +201,8 @@ export async function getFullMatchAnalysis(matchId: number): Promise<MatchAnalys
   if (!match) return null;
 
   const allTeams = await db.select().from(teams);
-  const homeTeam = allTeams.find(
-    (t) => t.longName === match.homeTeam || t.name === match.homeTeam
-  ) ?? makeVirtualTeam(match.homeTeam);
-  const awayTeam = allTeams.find(
-    (t) => t.longName === match.awayTeam || t.name === match.awayTeam
-  ) ?? makeVirtualTeam(match.awayTeam);
+  const homeTeam = allTeams.find((t) => t.longName === match.homeTeam || t.name === match.homeTeam) ?? makeVirtualTeam(match.homeTeam);
+  const awayTeam = allTeams.find((t) => t.longName === match.awayTeam || t.name === match.awayTeam) ?? makeVirtualTeam(match.awayTeam);
 
   let homeStatsRow = null;
   let awayStatsRow = null;
@@ -241,46 +219,22 @@ export async function getFullMatchAnalysis(matchId: number): Promise<MatchAnalys
   let awayPlayers: LineupPlayer[] = [];
   let homeFormation = homeTeam.formation || "4-3-3";
   let awayFormation = awayTeam.formation || "4-3-3";
-  let homeRating: number | null = null;
-  let awayRating: number | null = null;
-  let lineupSource: "api" | "seed" | "none" = "none";
+  let lineupSource: "seed" | "none" = "none";
 
   if (homeTeam.id) {
-    const seedHome = await db.select().from(teamPlayers)
-      .where(and(eq(teamPlayers.teamId, homeTeam.id), eq(teamPlayers.isStarter, true)));
-    if (seedHome.length > 0) {
-      homePlayers = mapSeedPlayersToLineup(seedHome);
-      lineupSource = "seed";
-    }
+    const seedHome = await db.select().from(teamPlayers).where(and(eq(teamPlayers.teamId, homeTeam.id), eq(teamPlayers.isStarter, true)));
+    if (seedHome.length > 0) { homePlayers = mapSeedPlayersToLineup(seedHome); lineupSource = "seed"; }
   }
   if (awayTeam.id) {
-    const seedAway = await db.select().from(teamPlayers)
-      .where(and(eq(teamPlayers.teamId, awayTeam.id), eq(teamPlayers.isStarter, true)));
-    if (seedAway.length > 0) {
-      awayPlayers = mapSeedPlayersToLineup(seedAway);
-      lineupSource = "seed";
-    }
+    const seedAway = await db.select().from(teamPlayers).where(and(eq(teamPlayers.teamId, awayTeam.id), eq(teamPlayers.isStarter, true)));
+    if (seedAway.length > 0) { awayPlayers = mapSeedPlayersToLineup(seedAway); lineupSource = "seed"; }
   }
 
-  const analysis = generateAnalysis(
-    homeStatsRow,
-    awayStatsRow,
-    homeTeam.fifaRanking,
-    awayTeam.fifaRanking
-  );
+  const analysis = generateAnalysis(homeStatsRow, awayStatsRow, homeTeam.fifaRanking, awayTeam.fifaRanking);
 
   return {
-    homeTeam,
-    awayTeam,
-    homeStats: homeStatsRow,
-    awayStats: awayStatsRow,
-    homePlayers,
-    awayPlayers,
-    homeFormation,
-    awayFormation,
-    homeRating,
-    awayRating,
-    analysis,
-    lineupSource,
+    homeTeam, awayTeam, homeStats: homeStatsRow, awayStats: awayStatsRow,
+    homePlayers, awayPlayers, homeFormation, awayFormation,
+    homeRating: null, awayRating: null, analysis, lineupSource,
   };
 }

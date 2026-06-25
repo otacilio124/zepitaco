@@ -24,14 +24,11 @@ function pickStarters(squad) {
     const pos = mapPosition(p.position);
     if (byPos[pos]) byPos[pos].push(p);
   });
-
-  // 4-3-3: 1 GK, 4 DEF, 3 MID, 3 FWD
   const starters = new Set();
   byPos.GK.slice(0, 1).forEach((p) => starters.add(p.id));
   byPos.DEF.slice(0, 4).forEach((p) => starters.add(p.id));
   byPos.MID.slice(0, 3).forEach((p) => starters.add(p.id));
   byPos.FWD.slice(0, 3).forEach((p) => starters.add(p.id));
-
   return starters;
 }
 
@@ -40,36 +37,37 @@ async function run() {
   const { teams } = await apiFetch("/competitions/WC/teams");
   console.log(`  ${teams.length} teams found`);
 
-  console.log("Fetching WC standings...");
-  const { standings } = await apiFetch("/competitions/WC/standings");
+  console.log("Fetching WC matches (finished)...");
+  const { matches } = await apiFetch("/competitions/WC/matches?status=FINISHED");
+  console.log(`  ${matches.length} finished matches`);
 
-  const teamStatsMap = new Map();
-  for (const group of standings) {
-    if (group.type !== "TOTAL") continue;
-    for (const entry of group.table) {
-      teamStatsMap.set(entry.team.id, {
-        mp: entry.playedGames,
-        w: entry.won,
-        d: entry.draw,
-        l: entry.lost,
-        gf: entry.goalsFor,
-        ga: entry.goalsAgainst,
-      });
+  // Calculate REAL stats from match results
+  const realStats = new Map();
+  matches.forEach((m) => {
+    const hg = m.score.fullTime.home;
+    const ag = m.score.fullTime.away;
+
+    for (const [id, gf, gc] of [
+      [m.homeTeam.id, hg, ag],
+      [m.awayTeam.id, ag, hg],
+    ]) {
+      if (!realStats.has(id))
+        realStats.set(id, { mp: 0, w: 0, d: 0, l: 0, gf: 0, gc: 0, cs: 0, results: [] });
+      const s = realStats.get(id);
+      s.mp++;
+      s.gf += gf;
+      s.gc += gc;
+      if (gc === 0) s.cs++;
+      if (gf > gc) { s.w++; s.results.push("W"); }
+      else if (gf === gc) { s.d++; s.results.push("D"); }
+      else { s.l++; s.results.push("L"); }
     }
-  }
+  });
 
   console.log("Syncing teams...");
   for (const team of teams) {
-    const stats = teamStatsMap.get(team.id);
-
-    let form = "-----";
-    if (stats && stats.mp > 0) {
-      const chars = [];
-      for (let i = 0; i < Math.min(stats.w, 5); i++) chars.push("W");
-      for (let i = 0; i < Math.min(stats.d, 5 - chars.length); i++) chars.push("D");
-      while (chars.length < 5) chars.push(stats.l > 0 ? "L" : "-");
-      form = chars.slice(0, 5).join("");
-    }
+    const stats = realStats.get(team.id);
+    const form = stats ? stats.results.slice(-5).join("") : "-----";
 
     await sql`
       INSERT INTO teams (id, name, long_name, code, logo, country, fifa_ranking, formation, coach)
@@ -80,22 +78,20 @@ async function run() {
         coach = EXCLUDED.coach, code = EXCLUDED.code
     `;
 
+    // Insert REAL stats only - no fake data
+    await sql`DELETE FROM team_stats WHERE team_id = ${team.id}`;
     if (stats) {
-      const cs = stats.mp > 0 ? Math.max(0, stats.mp - Math.ceil(stats.ga * stats.mp / Math.max(stats.mp, 1) / stats.mp)) : 0;
-      const avgShots = stats.mp > 0 ? Math.round((stats.gf / stats.mp) * 4 + 6) : 10;
-
-      await sql`DELETE FROM team_stats WHERE team_id = ${team.id}`;
       await sql`
         INSERT INTO team_stats (team_id, matches_played, wins, draws, losses, goals_scored, goals_conceded,
           clean_sheets, avg_possession, avg_shots_per_game, avg_pass_accuracy, form_last5)
-        VALUES (${team.id}, ${stats.mp}, ${stats.w}, ${stats.d}, ${stats.l}, ${stats.gf}, ${stats.ga},
-          ${cs}, 50, ${avgShots}, 80, ${form})
+        VALUES (${team.id}, ${stats.mp}, ${stats.w}, ${stats.d}, ${stats.l}, ${stats.gf}, ${stats.gc},
+          ${stats.cs}, 0, 0, 0, ${form})
       `;
     }
 
+    // Players
     if (team.squad?.length > 0) {
       const starters = pickStarters(team.squad);
-
       await sql`DELETE FROM team_players WHERE team_id = ${team.id}`;
       for (const player of team.squad) {
         const age = player.dateOfBirth
@@ -109,7 +105,7 @@ async function run() {
     }
   }
 
-  console.log(`  ${teams.length} teams synced with starters marked`);
+  console.log(`  ${teams.length} teams synced with REAL stats from ${matches.length} matches`);
   console.log("Done!");
 }
 

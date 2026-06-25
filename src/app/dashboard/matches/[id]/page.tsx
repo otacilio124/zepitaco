@@ -199,23 +199,26 @@ export default async function MatchAnalysisPage({
             </div>
           )}
 
-          {/* Stats Comparison */}
+          {/* Stats Comparison - ONLY real data */}
           <div className="rounded-xl bg-card-bg border border-card-border p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">
-              Comparativo Estatístico
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">
+                Estatísticas na Copa
+              </h2>
+              <span className="text-[9px] text-muted">Dados reais da competição</span>
+            </div>
             <StatComparison
               stats={[
                 {
-                  label: "Posse de Bola",
-                  homeValue: analysis.analysis.homePossession,
-                  awayValue: analysis.analysis.awayPossession,
-                  format: "percent",
+                  label: "Média Gols/Jogo",
+                  homeValue: analysis.analysis.homeAvgGoalsScored,
+                  awayValue: analysis.analysis.awayAvgGoalsScored,
+                  format: "decimal",
                 },
                 {
-                  label: "Finalizações (est.)",
-                  homeValue: analysis.analysis.homeShots,
-                  awayValue: analysis.analysis.awayShots,
+                  label: "Média Sofridos/Jogo",
+                  homeValue: analysis.analysis.homeAvgGoalsConceded,
+                  awayValue: analysis.analysis.awayAvgGoalsConceded,
                   format: "decimal",
                 },
                 {
@@ -234,10 +237,9 @@ export default async function MatchAnalysisPage({
                   awayValue: analysis.awayStats?.cleanSheets || 0,
                 },
                 {
-                  label: "Precisão de Passe",
-                  homeValue: analysis.homeStats?.avgPassAccuracy || 80,
-                  awayValue: analysis.awayStats?.avgPassAccuracy || 80,
-                  format: "percent",
+                  label: "Jogos Disputados",
+                  homeValue: analysis.homeStats?.matchesPlayed || 0,
+                  awayValue: analysis.awayStats?.matchesPlayed || 0,
                 },
               ]}
             />
@@ -283,14 +285,9 @@ export default async function MatchAnalysisPage({
           {(analysis.homePlayers.length > 0 || analysis.awayPlayers.length > 0) && (
             <div>
               <h2 className="text-lg font-semibold text-white mb-1">
-                Escalações {analysis.lineupSource === "api" ? "Confirmadas" : "Prováveis"}
+                Escalações Prováveis
               </h2>
-              {analysis.lineupSource === "api" && (
-                <p className="text-xs text-accent-green mb-4">Dados oficiais da partida</p>
-              )}
-              {analysis.lineupSource === "seed" && (
-                <p className="text-xs text-muted mb-4">Baseado em escalações recentes</p>
-              )}
+              <p className="text-xs text-muted mb-4">Baseado nos elencos convocados</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {analysis.homePlayers.length > 0 && (
                   <FormationPitch
