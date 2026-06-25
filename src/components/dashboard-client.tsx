@@ -48,7 +48,16 @@ function MatchRow({ match }: { match: Match }) {
   return (
     <Link href={`/dashboard/matches/${match.matchId}`} className="card card-interactive block p-4">
       <div className="flex items-center justify-between text-[10px] text-muted mb-2.5">
-        <Countdown targetDate={match.matchDate} className="text-accent-purple font-medium" />
+        {match.status === "finished" ? (
+          <span className="text-muted">Encerrado</span>
+        ) : match.status === "live" ? (
+          <span className="flex items-center gap-1 text-accent-red font-semibold">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent-red live-pulse" />
+            AO VIVO
+          </span>
+        ) : (
+          <Countdown targetDate={match.matchDate} className="text-accent-purple font-medium" />
+        )}
       </div>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-1 min-w-0">

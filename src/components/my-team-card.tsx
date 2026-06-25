@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Countdown } from "./ui/countdown";
 import { TeamFlag } from "./ui/team-flag";
+import { getCountryName } from "@/lib/country-codes";
 import { motion } from "framer-motion";
 
 type Match = {
@@ -62,11 +63,11 @@ export function MyTeamCard({ country, countryCode, matches }: Props) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <TeamFlag name={nextMatch.homeTeam} size={20} />
-              <span className="text-xs text-white truncate">{nextMatch.homeTeam}</span>
+              <span className="text-xs text-white truncate">{getCountryName(nextMatch.homeTeam)}</span>
             </div>
             <span className="text-xs text-muted px-2">vs</span>
             <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-              <span className="text-xs text-white truncate text-right">{nextMatch.awayTeam}</span>
+              <span className="text-xs text-white truncate text-right">{getCountryName(nextMatch.awayTeam)}</span>
               <TeamFlag name={nextMatch.awayTeam} size={20} />
             </div>
           </div>
@@ -77,9 +78,9 @@ export function MyTeamCard({ country, countryCode, matches }: Props) {
         <div className="rounded-xl bg-background p-3">
           <span className="text-[10px] text-muted">Último resultado</span>
           <div className="flex items-center justify-between mt-1.5">
-            <span className="text-xs text-white">{lastResult.homeTeam}</span>
+            <span className="text-xs text-white">{getCountryName(lastResult.homeTeam)}</span>
             <span className="text-xs font-semibold text-white">{lastResult.homeScore} - {lastResult.awayScore}</span>
-            <span className="text-xs text-white">{lastResult.awayTeam}</span>
+            <span className="text-xs text-white">{getCountryName(lastResult.awayTeam)}</span>
           </div>
         </div>
       )}
