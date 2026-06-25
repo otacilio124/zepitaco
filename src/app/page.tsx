@@ -1,7 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Logo } from "@/components/logo";
+import { auth } from "@/lib/auth";
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+  if (session?.user) redirect("/dashboard");
   return (
     <div className="flex flex-col flex-1">
       <section className="flex flex-1 flex-col items-center justify-center px-6 py-24 md:py-32 text-center">
