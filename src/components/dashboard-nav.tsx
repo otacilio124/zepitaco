@@ -7,6 +7,7 @@ const links = [
   { href: "/dashboard", label: "Início", exact: true },
   { href: "/dashboard/matches", label: "Análises", exact: false },
   { href: "/dashboard/groups", label: "Grupos", exact: false },
+  { href: "/dashboard/bracket", label: "Eliminatórias", exact: false },
   { href: "/dashboard/calendar", label: "Calendário", exact: false },
   { href: "/dashboard/live", label: "Ao Vivo", exact: false },
   { href: "/dashboard/ranking", label: "Ranking", exact: false },
@@ -33,7 +34,7 @@ export function DashboardNav() {
           >
             {link.label}
             {active && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 gradient-spectrum rounded-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-purple rounded-full" />
             )}
           </Link>
         );
