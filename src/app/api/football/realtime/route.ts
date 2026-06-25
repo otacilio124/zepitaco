@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
 import { getWorldCupMatches } from "@/lib/api/football-data";
+import { syncAllWorldCupMatches } from "@/lib/api/sync";
+import { db } from "@/lib/db";
+import { matches } from "@/lib/db/schema";
+import { desc } from "drizzle-orm";
 
 export const revalidate = 10;
+
+let lastDbSync = 0;
+const DB_SYNC_INTERVAL = 5 * 60 * 1000;
 
 export async function GET() {
   try {
     const data = await getWorldCupMatches();
 
-    const now = new Date();
-    const matches = data.matches
+    const allMatches = data.matches
       .filter((m) => m.homeTeam?.name && m.awayTeam?.name)
       .map((m) => ({
         id: m.id,
@@ -26,17 +32,24 @@ export async function GET() {
         matchday: m.matchday,
       }));
 
-    const live = matches.filter((m) => m.status === "IN_PLAY" || m.status === "PAUSED");
-    const today = matches.filter((m) => {
+    const now = Date.now();
+    const live = allMatches.filter((m) => m.status === "IN_PLAY" || m.status === "PAUSED");
+    const today = allMatches.filter((m) => {
       const d = new Date(m.utcDate);
-      return d.toDateString() === now.toDateString();
+      return d.toDateString() === new Date().toDateString();
     });
+
+    // Sync to Neon DB every 5 minutes in background
+    if (now - lastDbSync > DB_SYNC_INTERVAL) {
+      lastDbSync = now;
+      syncAllWorldCupMatches().catch(() => {});
+    }
 
     return NextResponse.json({
       live,
       today,
-      total: matches.length,
-      timestamp: now.toISOString(),
+      total: allMatches.length,
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown";

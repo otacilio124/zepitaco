@@ -21,7 +21,7 @@ export default async function DashboardPage() {
   const prefs = await getUserPrefs(session.user.id);
   if (!prefs?.onboardingCompleted) redirect("/onboarding");
 
-  checkAndSync().catch(() => {});
+  await checkAndSync().catch(() => {});
 
   const [upcoming, live, recent, stats, totalMatches, userPreds] =
     await Promise.all([
