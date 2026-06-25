@@ -166,6 +166,39 @@ export default async function MatchAnalysisPage({
             />
           </div>
 
+          {/* Probable Scores */}
+          {analysis.analysis.probableScores.length > 0 && (
+            <div className="rounded-xl bg-card-bg border border-card-border p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">
+                Placares Mais Prováveis
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                {analysis.analysis.probableScores.map((score, i) => (
+                  <div
+                    key={`${score.home}-${score.away}`}
+                    className={`rounded-xl p-4 text-center transition-all ${
+                      i === 0
+                        ? "bg-accent-purple/10 border border-accent-purple/30"
+                        : "bg-background border border-border"
+                    }`}
+                  >
+                    <div className="text-2xl font-bold text-white">
+                      {score.home} - {score.away}
+                    </div>
+                    <div className={`text-xs mt-1 ${i === 0 ? "text-accent-purple font-semibold" : "text-muted"}`}>
+                      {score.probability}%
+                    </div>
+                    {i === 0 && (
+                      <div className="text-[9px] text-accent-purple mt-0.5 font-medium">
+                        MAIS PROVÁVEL
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Stats Comparison */}
           <div className="rounded-xl bg-card-bg border border-card-border p-6">
             <h2 className="text-lg font-semibold text-white mb-4">

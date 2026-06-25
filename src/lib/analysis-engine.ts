@@ -38,6 +38,7 @@ export type MatchAnalysisResult = {
     awayShots: number;
     keyFactors: string[];
     confidenceLevel: "high" | "medium" | "low";
+    probableScores: { home: number; away: number; probability: number }[];
   };
   lineupSource: "api" | "seed" | "none";
 };
@@ -159,6 +160,29 @@ export function generateAnalysis(
   const confidence = Math.abs(homeWin - awayWin);
   const confidenceLevel = confidence > 35 ? "high" : confidence > 15 ? "medium" : "low";
 
+  // Poisson distribution for probable scores
+  function poisson(lambda: number, k: number): number {
+    let result = Math.exp(-lambda);
+    for (let i = 1; i <= k; i++) {
+      result *= lambda / i;
+    }
+    return result;
+  }
+
+  const lambdaHome = Math.max(0.5, predictedHome);
+  const lambdaAway = Math.max(0.3, predictedAway);
+
+  const scoreProbs: { home: number; away: number; probability: number }[] = [];
+  for (let h = 0; h <= 5; h++) {
+    for (let a = 0; a <= 5; a++) {
+      const prob = poisson(lambdaHome, h) * poisson(lambdaAway, a) * 100;
+      if (prob > 1) {
+        scoreProbs.push({ home: h, away: a, probability: Math.round(prob * 10) / 10 });
+      }
+    }
+  }
+  const probableScores = scoreProbs.sort((a, b) => b.probability - a.probability).slice(0, 5);
+
   return {
     predictedHomeScore: predictedHome,
     predictedAwayScore: predictedAway,
@@ -171,6 +195,7 @@ export function generateAnalysis(
     awayShots,
     keyFactors,
     confidenceLevel: confidenceLevel as "high" | "medium" | "low",
+    probableScores,
   };
 }
 
