@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
-import { getWorldCupMatches } from "@/lib/api/football-data";
+import { getWorldCupMatches, getWorldCupStandings } from "@/lib/api/football-data";
 
-export const revalidate = 60;
+export const revalidate = 30;
 
 export async function GET() {
   try {
-    const data = await getWorldCupMatches();
+    const [matchesData, standingsData] = await Promise.all([
+      getWorldCupMatches(),
+      getWorldCupStandings(),
+    ]);
 
-    const knockout = data.matches
+    const knockout = matchesData.matches
       .filter((m) => m.stage !== "GROUP_STAGE")
       .map((m) => ({
         id: m.id,
@@ -20,7 +23,25 @@ export async function GET() {
         stage: m.stage,
       }));
 
-    return NextResponse.json({ matches: knockout });
+    const groups = standingsData.standings
+      .filter((s) => s.type === "TOTAL")
+      .map((g) => ({
+        group: g.group,
+        table: g.table.map((t) => ({
+          position: t.position,
+          team: t.team.shortName,
+          tla: t.team.tla,
+          points: t.points,
+          played: t.playedGames,
+          gd: t.goalDifference,
+          qualified: t.playedGames >= 3 && t.position <= 2,
+        })),
+      }));
+
+    const groupStage = matchesData.matches.filter((m) => m.stage === "GROUP_STAGE");
+    const groupsFinished = groupStage.every((m) => m.status === "FINISHED");
+
+    return NextResponse.json({ matches: knockout, groups, groupsFinished });
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown";
     return NextResponse.json({ error: msg }, { status: 500 });
