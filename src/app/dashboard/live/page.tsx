@@ -85,7 +85,7 @@ function TodayMatchCard({ match }: { match: RealtimeMatch }) {
           <span className="text-xs text-white truncate">{getCountryName(match.homeTeam)}</span>
         </div>
         <span className="text-xs px-3 shrink-0">
-          {isFinished || match.status === "IN_PLAY" || match.status === "PAUSED" ? (
+          {isFinished || match.status === "IN_PLAY" || match.status === "PAUSED" || match.status === "LIVE" ? (
             <span className="font-semibold text-white">{match.homeScore} - {match.awayScore}</span>
           ) : (
             <span className="text-muted">vs</span>
@@ -214,7 +214,7 @@ export default function LivePage() {
                 Hoje ({todayMatches.length})
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                {todayMatches.filter((m) => m.status !== "IN_PLAY" && m.status !== "PAUSED").map((match) => (
+                {todayMatches.filter((m) => m.status !== "IN_PLAY" && m.status !== "PAUSED" && m.status !== "LIVE").map((match) => (
                   <TodayMatchCard key={match.id} match={match} />
                 ))}
               </div>

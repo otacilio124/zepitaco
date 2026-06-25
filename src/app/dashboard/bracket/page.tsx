@@ -77,7 +77,7 @@ function TeamSlot({ name, score, isWinner, isLoser, border }: {
 
 function BracketCard({ match, i }: { match: KOMatch; i: number }) {
   const fin = match.status === "FINISHED";
-  const live = match.status === "IN_PLAY" || match.status === "PAUSED";
+  const live = match.status === "IN_PLAY" || match.status === "PAUSED" || match.status === "LIVE";
   const hw = fin && match.homeScore !== null && match.awayScore !== null && match.homeScore > match.awayScore;
   const aw = fin && match.homeScore !== null && match.awayScore !== null && match.awayScore > match.homeScore;
   const hasTeams = match.home || match.away;

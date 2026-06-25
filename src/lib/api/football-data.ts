@@ -24,7 +24,7 @@ async function apiFetch<T>(path: string, revalidate = 10): Promise<T> {
 export type FDMatch = {
   id: number;
   utcDate: string;
-  status: "SCHEDULED" | "TIMED" | "IN_PLAY" | "PAUSED" | "FINISHED" | "POSTPONED" | "CANCELLED" | "SUSPENDED";
+  status: "SCHEDULED" | "TIMED" | "IN_PLAY" | "PAUSED" | "FINISHED" | "POSTPONED" | "CANCELLED" | "SUSPENDED" | "LIVE";
   matchday: number;
   stage: string;
   group: string | null;
@@ -154,6 +154,7 @@ export function mapFDStatus(status: FDMatch["status"]): string {
     SCHEDULED: "scheduled",
     TIMED: "scheduled",
     IN_PLAY: "live",
+    LIVE: "live",
     PAUSED: "live",
     FINISHED: "finished",
     POSTPONED: "cancelled",

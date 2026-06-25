@@ -29,7 +29,7 @@ export async function GET() {
         matchday: m.matchday,
       }));
 
-    const live = allMatches.filter((m) => m.status === "IN_PLAY" || m.status === "PAUSED");
+    const live = allMatches.filter((m) => m.status === "IN_PLAY" || m.status === "PAUSED" || m.status === "LIVE");
 
     const now = Date.now();
     if (now - lastDbSync > DB_SYNC_INTERVAL) {
