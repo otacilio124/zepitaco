@@ -1,58 +1,67 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 
 export function SplashScreen({ children }: { children: React.ReactNode }) {
-  const [show, setShow] = useState(true);
-  const [fadeOut, setFadeOut] = useState(false);
+  const [done, setDone] = useState(false);
+  const [opacity, setOpacity] = useState(1);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const triedPlay = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const seen = sessionStorage.getItem("splash-seen");
-    if (seen) { setShow(false); return; }
-    const timeout = setTimeout(() => dismiss(), 10000);
-    return () => clearTimeout(timeout);
+    if (sessionStorage.getItem("splash-seen")) {
+      setDone(true);
+      return;
+    }
+
+    function tryPlay() {
+      if (triedPlay.current || !videoRef.current) return;
+      triedPlay.current = true;
+      const p = videoRef.current.play();
+      if (p && p.catch) {
+        p.catch(() => finish());
+      }
+    }
+
+    if (videoRef.current) {
+      videoRef.current.addEventListener("loadeddata", tryPlay);
+      videoRef.current.load();
+    }
+
+    const fallback = setTimeout(() => finish(), 8000);
+    return () => clearTimeout(fallback);
   }, []);
 
-  function dismiss() {
-    setFadeOut(true);
-    setTimeout(() => { setShow(false); sessionStorage.setItem("splash-seen", "1"); }, 600);
+  function finish() {
+    setOpacity(0);
+    setTimeout(() => {
+      setDone(true);
+      sessionStorage.setItem("splash-seen", "1");
+    }, 500);
   }
 
-  if (!show) return <>{children}</>;
+  if (done) return <>{children}</>;
 
   return (
     <>
-      <AnimatePresence>
-        {show && (
-          <motion.div
-            animate={{ opacity: fadeOut ? 0 : 1 }}
-            transition={{ duration: 0.6 }}
-            className="fixed inset-0 z-[100] bg-[#060606] flex items-center justify-center"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4 }}
-              className="w-[70vw] max-w-xs md:max-w-sm rounded-xl overflow-hidden"
-            >
-              <video
-                ref={videoRef}
-                src="/intro.mp4"
-                autoPlay
-                muted
-                playsInline
-                preload="auto"
-                onEnded={dismiss}
-                className="w-full h-auto block"
-              />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <div className={show ? "hidden" : ""}>{children}</div>
+      <div
+        style={{ opacity, transition: "opacity 0.5s ease" }}
+        className="fixed inset-0 z-[100] bg-[#060606] flex items-center justify-center"
+      >
+        <div className="w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 flex items-center justify-center">
+          <video
+            ref={videoRef}
+            src="/intro.mp4"
+            muted
+            playsInline
+            preload="auto"
+            onEnded={finish}
+            className="w-full h-full object-contain"
+          />
+        </div>
+      </div>
+      <div className="hidden">{children}</div>
     </>
   );
 }
