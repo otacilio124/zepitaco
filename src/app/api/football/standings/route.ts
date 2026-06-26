@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { getWorldCupStandings } from "@/lib/api/football-data";
+import { getESPNStandings } from "@/lib/api/espn";
+
+export const revalidate = 30;
 
 export async function GET() {
   try {
-    const data = await getWorldCupStandings();
-    return NextResponse.json(data);
+    const groups = await getESPNStandings();
+    return NextResponse.json({ groups });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const msg = error instanceof Error ? error.message : "Unknown";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

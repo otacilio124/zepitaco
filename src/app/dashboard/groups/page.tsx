@@ -1,39 +1,37 @@
-import { getWorldCupStandings } from "@/lib/api/football-data";
-import { TeamFlag } from "@/components/ui/team-flag";
+"use client";
+
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { motion } from "framer-motion";
 import { getCountryName } from "@/lib/country-codes";
 
-type TableEntry = {
-  position: number;
-  team: {
-    id: number;
-    name: string;
-    shortName: string;
-    tla: string;
-    crest: string;
-  };
-  playedGames: number;
-  won: number;
-  draw: number;
-  lost: number;
-  points: number;
-  goalsFor: number;
-  goalsAgainst: number;
-  goalDifference: number;
+type Entry = {
+  team: { id: string; abbreviation: string; displayName: string; logo: string };
+  stats: { gamesPlayed: number; wins: number; ties: number; losses: number; pointsFor: number; pointsAgainst: number; pointDifferential: number; points: number; advanced: boolean };
 };
 
-function GroupTable({ groupName, table }: { groupName: string; table: TableEntry[] }) {
-  const letter = groupName.replace("GROUP_", "").replace("Group ", "");
+type Group = {
+  name: string;
+  entries: Entry[];
+  finished?: boolean;
+};
+
+function GroupTable({ group, index }: { group: Group; index: number }) {
+  const letter = group.name.replace("Group ", "");
 
   return (
-    <div className="card overflow-hidden">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="card overflow-hidden"
+    >
       <div className="px-4 py-3 border-b border-border flex items-center gap-2">
-        <span className="text-xs font-bold text-accent-purple bg-accent-purple/10 px-2 py-0.5 rounded-full">
-          {letter}
-        </span>
-        <span className="text-sm font-bold text-white">Grupo {letter}</span>
+        <span className="text-xs font-bold text-accent-purple bg-accent-purple/10 px-2 py-0.5 rounded-full">{letter}</span>
+        <span className="text-sm lg:text-base font-bold text-white">{group.name}</span>
       </div>
 
-      <div className="grid grid-cols-[1fr_32px_32px_32px_32px_32px_40px] gap-0 px-4 py-2 text-[10px] font-bold text-muted uppercase tracking-wider border-b border-border">
+      <div className="grid grid-cols-[1fr_28px_28px_28px_28px_28px_36px] md:grid-cols-[1fr_36px_36px_36px_36px_36px_44px] gap-0 px-3 md:px-4 py-2 text-[9px] md:text-[10px] lg:text-xs font-bold text-muted uppercase tracking-wider border-b border-border">
         <span>Seleção</span>
         <span className="text-center">J</span>
         <span className="text-center">V</span>
@@ -43,65 +41,63 @@ function GroupTable({ groupName, table }: { groupName: string; table: TableEntry
         <span className="text-center">Pts</span>
       </div>
 
-      {table.map((entry) => {
-        const qualifies = entry.position <= 2;
+      {group.entries.map((entry, i) => {
+        const qualifies = entry.stats.advanced || i < 2;
+        const gd = entry.stats.pointDifferential;
         return (
           <div
             key={entry.team.id}
-            className={`grid grid-cols-[1fr_32px_32px_32px_32px_32px_40px] gap-0 px-4 py-2.5 items-center border-b border-border last:border-0 ${
+            className={`grid grid-cols-[1fr_28px_28px_28px_28px_28px_36px] md:grid-cols-[1fr_36px_36px_36px_36px_36px_44px] gap-0 px-3 md:px-4 py-2.5 items-center border-b border-border last:border-0 ${
               qualifies ? "bg-accent-green/[0.03]" : ""
             }`}
           >
-            <div className="flex items-center gap-2.5">
-              {qualifies && (
-                <span className="h-1.5 w-1.5 rounded-full bg-accent-green shrink-0" />
-              )}
+            <div className="flex items-center gap-2">
+              {qualifies && <span className="h-1.5 w-1.5 rounded-full bg-accent-green shrink-0" />}
               {!qualifies && <span className="h-1.5 w-1.5 shrink-0" />}
-              <TeamFlag name={entry.team.shortName || entry.team.name} size={22} />
-              <span className="text-xs font-medium text-white truncate">
-                {getCountryName(entry.team.shortName || entry.team.name)}
+              {entry.team.logo && (
+                <Image src={entry.team.logo} alt="" width={20} height={20} className="rounded-sm object-contain shrink-0" unoptimized />
+              )}
+              <span className="text-xs lg:text-sm font-medium text-white truncate">
+                {getCountryName(entry.team.displayName)}
               </span>
             </div>
-            <span className="text-xs text-muted text-center">{entry.playedGames}</span>
-            <span className="text-xs text-accent-green text-center">{entry.won}</span>
-            <span className="text-xs text-accent-yellow text-center">{entry.draw}</span>
-            <span className="text-xs text-accent-red text-center">{entry.lost}</span>
-            <span className={`text-xs text-center ${entry.goalDifference > 0 ? "text-accent-green" : entry.goalDifference < 0 ? "text-accent-red" : "text-muted"}`}>
-              {entry.goalDifference > 0 ? `+${entry.goalDifference}` : entry.goalDifference}
+            <span className="text-xs lg:text-sm text-muted text-center">{entry.stats.gamesPlayed}</span>
+            <span className="text-xs lg:text-sm text-accent-green text-center">{entry.stats.wins}</span>
+            <span className="text-xs lg:text-sm text-accent-yellow text-center">{entry.stats.ties}</span>
+            <span className="text-xs lg:text-sm text-accent-red text-center">{entry.stats.losses}</span>
+            <span className={`text-xs lg:text-sm text-center ${gd > 0 ? "text-accent-green" : gd < 0 ? "text-accent-red" : "text-muted"}`}>
+              {gd > 0 ? `+${gd}` : gd}
             </span>
-            <span className="text-sm font-bold text-white text-center">{entry.points}</span>
+            <span className="text-sm lg:text-base font-bold text-white text-center">{entry.stats.points}</span>
           </div>
         );
       })}
-    </div>
+    </motion.div>
   );
 }
 
-export default async function GroupsPage() {
-  let standings: { group: string; table: TableEntry[] }[] = [];
-  let error = false;
+export default function GroupsPage() {
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  try {
-    const data = await getWorldCupStandings();
-    standings = data.standings
-      .filter((s) => s.type === "TOTAL")
-      .sort((a, b) => a.group.localeCompare(b.group));
-  } catch {
-    error = true;
-  }
+  useEffect(() => {
+    fetch("/api/football/standings")
+      .then((r) => r.json())
+      .then((data) => {
+        setGroups(data.groups || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl md:text-2xl font-bold text-white">
-          Fase de Grupos
-        </h1>
-        <p className="text-sm text-muted mt-1">
-          Copa do Mundo 2026 — Classificação atualizada
-        </p>
+        <h1 className="text-lg md:text-xl font-semibold text-white">Fase de Grupos</h1>
+        <p className="text-xs lg:text-sm text-muted mt-1">Copa do Mundo 2026 — Classificação atualizada</p>
       </div>
 
-      <div className="flex items-center gap-3 text-xs text-muted">
+      <div className="flex items-center gap-3 text-[10px] lg:text-xs text-muted">
         <div className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-accent-green" />
           <span>Classifica</span>
@@ -109,26 +105,17 @@ export default async function GroupsPage() {
         <span>J = Jogos · V = Vitórias · E = Empates · D = Derrotas · SG = Saldo</span>
       </div>
 
-      {error ? (
-        <div className="card p-8 text-center">
-          <p className="text-muted">Não foi possível carregar os grupos.</p>
-          <p className="text-xs text-muted mt-1">Verifique o token da API Football-Data.org</p>
-        </div>
-      ) : standings.length > 0 ? (
+      {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {standings.map((s) => (
-            <GroupTable key={s.group} groupName={s.group} table={s.table} />
-          ))}
+          {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="card h-48 shimmer" />)}
         </div>
       ) : (
-        <div className="card p-8 text-center">
-          <p className="text-muted">Os grupos ainda não foram definidos.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {groups.map((g, i) => <GroupTable key={g.name} group={g} index={i} />)}
         </div>
       )}
 
-      <p className="text-[10px] text-muted text-center">
-        Dados fornecidos por Football-Data.org e ESPN
-      </p>
+      <p className="text-[10px] lg:text-xs text-muted text-center">Dados fornecidos por ESPN</p>
     </div>
   );
 }

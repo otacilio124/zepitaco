@@ -441,9 +441,9 @@ export default async function MatchAnalysisPage({
                         <span className={`text-xs ${isGoal ? "text-white font-semibold" : "text-muted-light"}`}>
                           {evt.type.replace("Penalty - ", "Pênalti ")}
                         </span>
-                        {evt.players.length > 0 && (
+                        {evt.player && (
                           <span className="text-xs text-muted ml-1">
-                            — {evt.players.join(", ")}
+                            — {evt.player}
                           </span>
                         )}
                       </div>
