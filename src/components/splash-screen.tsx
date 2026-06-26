@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export function SplashScreen({ children }: { children: React.ReactNode }) {
   const [show, setShow] = useState(true);
-  const [videoEnded, setVideoEnded] = useState(false);
+  const [fadeOut, setFadeOut] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -15,33 +16,28 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
       setShow(false);
       return;
     }
-
-    const timer = setTimeout(() => {
-      setVideoEnded(true);
-      setTimeout(() => {
-        setShow(false);
-        sessionStorage.setItem("splash-seen", "1");
-      }, 600);
-    }, 8000);
-
-    return () => clearTimeout(timer);
   }, []);
 
-  function handleVideoEnd() {
-    setVideoEnded(true);
-    setTimeout(() => {
-      setShow(false);
-      sessionStorage.setItem("splash-seen", "1");
-    }, 600);
+  function handleCanPlay() {
+    setVideoReady(true);
+    videoRef.current?.play().catch(() => {
+      dismiss();
+    });
   }
 
-  function handleSkip() {
-    setVideoEnded(true);
+  function handleVideoEnd() {
+    dismiss();
+  }
+
+  function dismiss() {
+    setFadeOut(true);
     setTimeout(() => {
       setShow(false);
       sessionStorage.setItem("splash-seen", "1");
-    }, 300);
+    }, 800);
   }
+
+  if (!show) return <>{children}</>;
 
   return (
     <>
@@ -49,33 +45,56 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
         {show && (
           <motion.div
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6 }}
-            className="fixed inset-0 z-[100] bg-black flex items-center justify-center"
+            animate={{ opacity: fadeOut ? 0 : 1 }}
+            transition={{ duration: 0.8 }}
+            className="fixed inset-0 z-[100] bg-[#09090b] flex flex-col items-center justify-center"
           >
-            <video
-              ref={videoRef}
-              src="/intro.mp4"
-              autoPlay
-              muted
-              playsInline
-              onEnded={handleVideoEnd}
-              className={`w-full h-full object-cover transition-opacity duration-500 ${
-                videoEnded ? "opacity-0" : "opacity-100"
-              }`}
-            />
-
-            <button
-              onClick={handleSkip}
-              className="absolute bottom-8 right-8 md:bottom-12 md:right-12 text-white/50 hover:text-white text-xs md:text-sm font-medium transition-colors z-10 backdrop-blur-sm bg-black/30 px-4 py-2 rounded-full"
+            {/* Video container - centered and sized */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: videoReady ? 1 : 0, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="w-[85vw] max-w-lg md:max-w-xl lg:max-w-2xl rounded-2xl overflow-hidden shadow-2xl shadow-accent-purple/10"
             >
-              Pular ›
-            </button>
+              <video
+                ref={videoRef}
+                src="/intro.mp4"
+                muted
+                playsInline
+                preload="auto"
+                onCanPlay={handleCanPlay}
+                onEnded={handleVideoEnd}
+                className="w-full h-auto"
+              />
+            </motion.div>
+
+            {/* Loading indicator before video ready */}
+            {!videoReady && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col items-center gap-4"
+              >
+                <div className="h-8 w-8 border-2 border-accent-purple/30 border-t-accent-purple rounded-full animate-spin" />
+                <span className="text-xs text-muted">Carregando...</span>
+              </motion.div>
+            )}
+
+            {/* Skip button */}
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: videoReady ? 1 : 0 }}
+              transition={{ delay: 1.5 }}
+              onClick={dismiss}
+              className="mt-6 text-muted hover:text-white text-xs md:text-sm font-medium transition-colors px-5 py-2 rounded-full border border-border hover:border-border-hover"
+            >
+              Pular
+            </motion.button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className={show ? "opacity-0" : "opacity-100 transition-opacity duration-300"}>
+      <div className={show ? "hidden" : ""}>
         {children}
       </div>
     </>
