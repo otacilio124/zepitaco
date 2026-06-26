@@ -127,22 +127,56 @@ function parseRoster(roster: {
   };
 }
 
+function teamMatchesESPN(teamName: string, espnShortName: string): boolean {
+  const t = teamName.toUpperCase();
+  const e = espnShortName.toUpperCase();
+  if (e.includes(t.substring(0, 3))) return true;
+  const aliases: Record<string, string[]> = {
+    "KOREA REPUBLIC": ["KOR"],
+    "SOUTH KOREA": ["KOR"],
+    "BOSNIA-H.": ["BIH", "BOS"],
+    "CONGO DR": ["COD", "CON"],
+    "IVORY COAST": ["CIV"],
+    "CAPE VERDE": ["CPV"],
+    "COSTA RICA": ["CRC", "COS"],
+    "NEW ZEALAND": ["NZL", "NZ"],
+    "SAUDI ARABIA": ["KSA", "SAU", "SA"],
+    "SOUTH AFRICA": ["RSA", "SA"],
+    "TRINIDAD AND TOBAGO": ["TRI", "TTO"],
+    "DOMINICAN REPUBLIC": ["DOM"],
+    "UNITED STATES": ["USA"],
+    USA: ["USA"],
+    CURAÇAO: ["CUW", "CUR"],
+    CZECHIA: ["CZE", "CZ"],
+  };
+  const teamAliases = aliases[t] || [];
+  return teamAliases.some((a) => e.includes(a));
+}
+
 async function findESPNEventId(homeTeam: string, awayTeam: string, matchDate: Date | string): Promise<string | null> {
   const date = new Date(matchDate);
-  const dateStr = date.getFullYear().toString() + String(date.getMonth() + 1).padStart(2, "0") + String(date.getDate()).padStart(2, "0");
 
-  const res = await fetch(`${ESPN_BASE}/scoreboard?dates=${dateStr}`, { next: { revalidate: 300 } });
-  if (!res.ok) return null;
+  // Try the match date and adjacent dates (timezone offset can shift the day)
+  for (const offset of [0, -1, 1]) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + offset);
+    const dateStr = d.getFullYear().toString() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
 
-  const data = await res.json();
-  const event = data.events?.find((e: { shortName: string }) => {
-    const sn = e.shortName.toUpperCase();
-    const h = homeTeam.toUpperCase().substring(0, 3);
-    const a = awayTeam.toUpperCase().substring(0, 3);
-    return sn.includes(h) || sn.includes(a);
-  });
+    const res = await fetch(`${ESPN_BASE}/scoreboard?dates=${dateStr}`, { next: { revalidate: 300 } });
+    if (!res.ok) continue;
 
-  return event?.id || null;
+    const data = await res.json();
+    const event = data.events?.find((e: { shortName: string; competitions?: { competitors?: { team?: { abbreviation?: string } }[] }[] }) => {
+      const sn = e.shortName.toUpperCase();
+      if (teamMatchesESPN(homeTeam, sn) && teamMatchesESPN(awayTeam, sn)) return true;
+      const teams = e.competitions?.[0]?.competitors?.map((c) => c.team?.abbreviation?.toUpperCase() || "") || [];
+      return teams.some((t) => teamMatchesESPN(homeTeam, t)) && teams.some((t) => teamMatchesESPN(awayTeam, t));
+    });
+
+    if (event) return event.id;
+  }
+
+  return null;
 }
 
 export async function getESPNMatchData(
