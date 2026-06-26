@@ -23,8 +23,8 @@ export function PerformanceRing({ total, correct, exact, label }: Props) {
   const exactOffset = circumference - (circumference * exactPct) / 100;
 
   return (
-    <div ref={ref} className="flex items-center gap-4">
-      <div className="relative h-24 w-24 shrink-0">
+    <div ref={ref} className="flex items-center gap-4 lg:gap-5">
+      <div className="relative h-24 w-24 lg:h-28 lg:w-28 shrink-0">
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
           <circle cx="50" cy="50" r={radius} fill="none" stroke="var(--border)" strokeWidth="6" />
           <motion.circle

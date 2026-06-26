@@ -267,7 +267,7 @@ export default function LivePage() {
   const tomorrowMatches = all.filter((m) => new Date(m.utcDate).toLocaleDateString("en-CA") === tomorrowStr);
 
   return (
-    <div className="space-y-5 max-w-4xl mx-auto">
+    <div className="space-y-5 max-w-6xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -306,7 +306,7 @@ export default function LivePage() {
           {todayScheduled.length > 0 && (
             <div>
               <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-3">Ainda hoje ({todayScheduled.length})</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {todayScheduled.map((m) => <ScheduledMatchCard key={m.id} match={m} />)}
               </div>
             </div>
@@ -316,7 +316,7 @@ export default function LivePage() {
           {todayFinished.length > 0 && (
             <div>
               <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-3">Encerrados hoje ({todayFinished.length})</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {todayFinished.map((m) => <FinishedMatchCard key={m.id} match={m} />)}
               </div>
             </div>
@@ -326,7 +326,7 @@ export default function LivePage() {
           {yesterdayMatches.length > 0 && (
             <div>
               <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-3">Ontem ({yesterdayMatches.length})</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {yesterdayMatches.map((m) => <FinishedMatchCard key={m.id} match={m} />)}
               </div>
             </div>
@@ -336,7 +336,7 @@ export default function LivePage() {
           {tomorrowMatches.length > 0 && (
             <div>
               <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-3">Amanhã ({tomorrowMatches.length})</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {tomorrowMatches.map((m) => <ScheduledMatchCard key={m.id} match={m} />)}
               </div>
             </div>

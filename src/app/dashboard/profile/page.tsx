@@ -37,7 +37,7 @@ export default async function ProfilePage() {
   const countryCode = prefs?.favoriteCountry ? getCountryCode(prefs.favoriteCountry) : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl">
       {/* Profile Header */}
       <div className="card p-6">
         <div className="flex items-center gap-4">

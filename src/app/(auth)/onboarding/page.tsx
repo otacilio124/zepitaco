@@ -54,7 +54,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4 py-8">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm md:max-w-lg">
         {/* Progress */}
         <div className="flex gap-2 mb-8">
           {[0, 1].map((i) => (
@@ -118,7 +118,7 @@ export default function OnboardingPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto hide-scrollbar pr-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[400px] md:max-h-[500px] overflow-y-auto hide-scrollbar pr-1">
                 {countries.map((c) => (
                   <button
                     key={c.id}

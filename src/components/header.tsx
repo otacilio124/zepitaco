@@ -8,7 +8,7 @@ export async function Header() {
 
   return (
     <header className="border-b border-border bg-background/90 backdrop-blur-xl sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-14">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 md:px-6 lg:px-8 h-14 md:h-16">
         <Link href={session?.user ? "/dashboard" : "/"}>
           <Logo size="small" />
         </Link>

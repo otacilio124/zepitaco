@@ -233,7 +233,7 @@ export function DashboardClient({ user, prefs, upcoming, live, recent, stats, to
             <p className="text-[10px] font-semibold text-muted uppercase tracking-widest">Próximos Jogos</p>
             <Link href="/dashboard/matches" className="text-[10px] text-accent-purple">Ver todos →</Link>
           </div>
-          <StaggerChildren className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          <StaggerChildren className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {upcoming.slice(0, 6).map((match) => (
               <StaggerItem key={match.matchId}>
                 <MatchRow match={match} />
@@ -247,7 +247,7 @@ export function DashboardClient({ user, prefs, upcoming, live, recent, stats, to
         <FadeIn delay={0.35}>
           <div>
             <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-3">Resultados</p>
-            <StaggerChildren className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <StaggerChildren className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {recent.slice(0, 4).map((match) => (
                 <StaggerItem key={match.matchId}>
                   <MatchRow match={match} />

@@ -84,7 +84,7 @@ export function TopScorers() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 py-3 text-[10px] font-semibold uppercase tracking-widest transition-colors relative ${
+            className={`flex-1 py-3 lg:py-4 text-[10px] lg:text-xs font-semibold uppercase tracking-widest transition-colors relative ${
               tab === t.key ? "text-white" : "text-muted hover:text-muted-light"
             }`}
           >

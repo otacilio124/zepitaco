@@ -16,7 +16,7 @@ export default async function RankingPage() {
       </div>
 
       {leaderboard.length > 0 ? (
-        <div className="space-y-2">
+        <div className="space-y-2 max-w-3xl">
           {leaderboard.map((user, i) => {
             const isMe = user.id === session.user?.id;
             const position = i + 1;

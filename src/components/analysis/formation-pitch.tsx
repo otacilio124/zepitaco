@@ -74,10 +74,10 @@ function PlayerDot({ player, side, photo }: { player: Player; side: "home" | "aw
           {player.number || "?"}
         </div>
       )}
-      <span className="text-[8px] sm:text-[9px] md:text-[10px] text-white font-medium text-center leading-tight truncate w-full drop-shadow-sm">
+      <span className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs text-white font-medium text-center leading-tight truncate w-full drop-shadow-sm">
         {lastName}
       </span>
-      <span className="text-[6px] sm:text-[7px] text-white/40">{getPositionLabel(player.position)}</span>
+      <span className="text-[6px] sm:text-[7px] md:text-[8px] lg:text-[9px] text-white/40">{getPositionLabel(player.position)}</span>
     </div>
   );
 }
@@ -93,16 +93,16 @@ export function FormationPitch({ formation, players, teamName, side, photos = {}
         <span className="text-[10px] text-accent-purple font-medium">{formation}</span>
       </div>
       <div
-        className="relative p-2 sm:p-3 md:p-4"
+        className="relative p-2 sm:p-3 md:p-4 lg:p-5"
         style={{
           background: "linear-gradient(180deg, #14532d 0%, #166534 50%, #14532d 100%)",
         }}
       >
-        <div className="absolute inset-2 sm:inset-3 md:inset-4 border border-white/15 rounded" />
-        <div className="absolute left-2 right-2 sm:left-3 sm:right-3 md:left-4 md:right-4 top-1/2 h-px bg-white/15" />
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 border border-white/15 rounded-full" />
+        <div className="absolute inset-2 sm:inset-3 md:inset-4 lg:inset-5 border border-white/15 rounded" />
+        <div className="absolute left-2 right-2 sm:left-3 sm:right-3 md:left-4 md:right-4 lg:left-5 lg:right-5 top-1/2 h-px bg-white/15" />
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 border border-white/15 rounded-full" />
 
-        <div className="relative flex flex-col justify-between py-2 sm:py-3" style={{ minHeight: 260 }}>
+        <div className="relative flex flex-col justify-between py-2 sm:py-3 min-h-[260px] md:min-h-[320px] lg:min-h-[380px]">
           {displayRows.map((row, rowIdx) => (
             <div key={rowIdx} className="flex justify-around items-center py-1">
               {row.map((player, pIdx) => (

@@ -69,7 +69,7 @@ export default async function MatchAnalysisPage({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto">
       {/* Back */}
       <Link
         href="/dashboard/matches"
