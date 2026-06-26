@@ -6,7 +6,7 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
   const [done, setDone] = useState(false);
   const [opacity, setOpacity] = useState(1);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const triedPlay = useRef(false);
+  const played = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -15,25 +15,44 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    function tryPlay() {
-      if (triedPlay.current || !videoRef.current) return;
-      triedPlay.current = true;
-      const p = videoRef.current.play();
-      if (p && p.catch) {
-        p.catch(() => finish());
+    const video = videoRef.current;
+    if (!video) { finish(); return; }
+
+    function attemptPlay() {
+      if (played.current || !video) return;
+      played.current = true;
+
+      const promise = video.play();
+      if (promise !== undefined) {
+        promise.then(() => {
+          // Playing successfully
+        }).catch(() => {
+          // Autoplay blocked — try once on user interaction
+          function onTouch() {
+            video?.play().catch(() => finish());
+            document.removeEventListener("touchstart", onTouch);
+            document.removeEventListener("click", onTouch);
+          }
+          document.addEventListener("touchstart", onTouch, { once: true });
+          document.addEventListener("click", onTouch, { once: true });
+        });
       }
     }
 
-    if (videoRef.current) {
-      videoRef.current.addEventListener("loadeddata", tryPlay);
-      videoRef.current.load();
-    }
+    video.addEventListener("canplaythrough", attemptPlay);
+    video.load();
 
-    const fallback = setTimeout(() => finish(), 8000);
+    // Also try after a short delay in case canplaythrough already fired
+    setTimeout(() => {
+      if (!played.current) attemptPlay();
+    }, 500);
+
+    const fallback = setTimeout(() => finish(), 10000);
     return () => clearTimeout(fallback);
   }, []);
 
   function finish() {
+    if (done) return;
     setOpacity(0);
     setTimeout(() => {
       setDone(true);
@@ -49,7 +68,7 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
         style={{ opacity, transition: "opacity 0.5s ease" }}
         className="fixed inset-0 z-[100] bg-[#060606] flex items-center justify-center"
       >
-        <div className="w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 flex items-center justify-center">
+        <div className="w-44 h-44 sm:w-52 sm:h-52 md:w-56 md:h-56">
           <video
             ref={videoRef}
             src="/intro.mp4"
@@ -57,6 +76,7 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
             playsInline
             preload="auto"
             onEnded={finish}
+            onError={finish}
             className="w-full h-full object-contain"
           />
         </div>
