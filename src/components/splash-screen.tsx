@@ -47,7 +47,7 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
             initial={{ opacity: 1 }}
             animate={{ opacity: fadeOut ? 0 : 1 }}
             transition={{ duration: 0.8 }}
-            className="fixed inset-0 z-[100] bg-[#09090b] flex flex-col items-center justify-center"
+            className="fixed inset-0 z-[100] bg-[#060606] flex flex-col items-center justify-center"
           >
             {/* Video container - centered and sized */}
             <motion.div
