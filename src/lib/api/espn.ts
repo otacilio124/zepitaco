@@ -108,17 +108,6 @@ function parseRoster(roster: {
     photo: p.athlete?.headshot?.href || null,
   }));
 
-  // Mark subbed out starters
-  const subbedInNames = new Set(players.filter((p) => p.subbedIn).map((p) => p.name));
-  const starterCount = players.filter((p) => p.starter).length;
-  if (subbedInNames.size > 0 && starterCount > 0) {
-    players.forEach((p) => {
-      if (p.starter && !p.subbedIn) {
-        // Keep as is
-      }
-    });
-  }
-
   return {
     teamName: roster.team?.displayName || "?",
     formation: roster.formation || "4-3-3",

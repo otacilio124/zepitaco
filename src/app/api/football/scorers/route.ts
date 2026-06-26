@@ -1,21 +1,8 @@
 import { NextResponse } from "next/server";
 import { getWorldCupScorers } from "@/lib/api/football-data";
+import { getPlayerPhoto } from "@/lib/api/player-photos";
 
 export const revalidate = 60;
-
-async function getPlayerPhoto(name: string): Promise<string | null> {
-  try {
-    const res = await fetch(
-      `https://www.thesportsdb.com/api/v1/json/3/searchplayers.php?p=${encodeURIComponent(name)}`,
-      { next: { revalidate: 86400 } }
-    );
-    const data = await res.json();
-    const player = data.player?.[0];
-    return player?.strCutout || player?.strThumb || null;
-  } catch {
-    return null;
-  }
-}
 
 export async function GET() {
   try {

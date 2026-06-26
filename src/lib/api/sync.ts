@@ -8,7 +8,6 @@ import {
   mapFDStatus,
   type FDMatch,
 } from "./football-data";
-import { getCountryCode } from "../country-codes";
 
 function toDbMatch(match: FDMatch) {
   return {
@@ -69,10 +68,3 @@ export async function syncLiveMatches(): Promise<number> {
   return synced;
 }
 
-export async function syncMatchesByDate(date: Date): Promise<number> {
-  return syncAllWorldCupMatches();
-}
-
-export async function syncDateRange(startDate: Date, days: number): Promise<number> {
-  return syncAllWorldCupMatches();
-}

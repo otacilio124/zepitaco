@@ -43,8 +43,8 @@ export default async function PredictionsPage({
           <MatchCard match={selectedMatch} />
           <PredictionForm
             matchId={selectedMatch.matchId}
-            homeTeam={selectedMatch.homeTeam}
-            awayTeam={selectedMatch.awayTeam}
+            homeTeam={getCountryName(selectedMatch.homeTeam)}
+            awayTeam={getCountryName(selectedMatch.awayTeam)}
             existingHome={existingPrediction?.predictedHomeScore}
             existingAway={existingPrediction?.predictedAwayScore}
           />

@@ -37,7 +37,7 @@ export default async function Home() {
       <section className="border-t border-border px-6 py-20">
         <div className="max-w-4xl mx-auto">
           <p className="text-xs font-semibold text-accent-purple uppercase tracking-widest text-center mb-2">
-            Features
+            Recursos
           </p>
           <h2 className="text-xl md:text-2xl font-bold text-white text-center mb-12">
             Tudo para dar o pitaco certo
@@ -96,7 +96,7 @@ export default async function Home() {
 
       <footer className="border-t border-border px-6 py-5 text-center">
         <p className="text-xs text-muted">
-          Zé Pitaco © 2026 · Football data provided by Football-Data.org
+          Zé Pitaco © 2026 · Dados fornecidos por Football-Data.org e ESPN
         </p>
       </footer>
     </div>

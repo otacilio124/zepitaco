@@ -310,7 +310,7 @@ export default function BracketPage() {
         <span className="flex items-center gap-1"><span className="opacity-25">Time</span> = Eliminado</span>
       </div>
 
-      <p className="text-[10px] text-muted text-center">Football data provided by Football-Data.org</p>
+      <p className="text-[10px] text-muted text-center">Dados fornecidos por Football-Data.org e ESPN</p>
     </div>
   );
 }

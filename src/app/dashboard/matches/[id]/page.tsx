@@ -249,7 +249,7 @@ export default async function MatchAnalysisPage({
                   awayValue: analysis.awayStats?.goalsConceded || 0,
                 },
                 {
-                  label: "Clean Sheets",
+                  label: "Jogos Sem Levar Gol",
                   homeValue: analysis.homeStats?.cleanSheets || 0,
                   awayValue: analysis.awayStats?.cleanSheets || 0,
                 },

@@ -127,7 +127,7 @@ export default async function GroupsPage() {
       )}
 
       <p className="text-[10px] text-muted text-center">
-        Football data provided by the Football-Data.org API
+        Dados fornecidos por Football-Data.org e ESPN
       </p>
     </div>
   );
