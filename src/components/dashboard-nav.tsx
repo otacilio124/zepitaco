@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 const links = [
   { href: "/dashboard", label: "Início", exact: true },
   { href: "/dashboard/matches", label: "Análises", exact: false },
-  { href: "/dashboard/groups", label: "Grupos", exact: false },
   { href: "/dashboard/bracket", label: "Eliminatórias", exact: false },
   { href: "/dashboard/calendar", label: "Calendário", exact: false },
   { href: "/dashboard/live", label: "Ao Vivo", exact: false },

@@ -8,12 +8,11 @@ import { motion, AnimatePresence } from "framer-motion";
 const mainTabs = [
   { href: "/dashboard", label: "Início", icon: "⚡", exact: true },
   { href: "/dashboard/live", label: "Ao Vivo", icon: "🔴", exact: false },
-  { href: "/dashboard/groups", label: "Grupos", icon: "🏆", exact: false },
+  { href: "/dashboard/bracket", label: "Eliminatórias", icon: "🏆", exact: false },
 ];
 
 const moreTabs = [
   { href: "/dashboard/matches", label: "Análises", icon: "📊" },
-  { href: "/dashboard/bracket", label: "Eliminatórias", icon: "🏅" },
   { href: "/dashboard/calendar", label: "Calendário", icon: "📅" },
   { href: "/dashboard/predictions", label: "Meus Pitacos", icon: "🎯" },
   { href: "/dashboard/ranking", label: "Ranking", icon: "👑" },
