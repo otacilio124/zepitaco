@@ -8,6 +8,7 @@ import { getCountryName } from "@/lib/country-codes";
 import { LocalTime } from "@/components/ui/local-time";
 
 type BracketTeam = {
+  id: string | null;
   name: string;
   abbreviation: string;
   logo: string | null;
@@ -140,21 +141,27 @@ export default function BracketPage() {
       const current = bracket[activeStages[i]] || [];
       const next = bracket[activeStages[i + 1]] || [];
 
-      for (let pair = 0; pair < next.length; pair++) {
-        const m1 = current[pair * 2];
-        const m2 = current[pair * 2 + 1];
-        const target = next[pair];
-        if (!target) continue;
+      // Map: team id -> the match where that team WON in the current round.
+      // This is ground truth from ESPN (no positional guessing).
+      const winnerToMatch = new Map<string, BracketMatch>();
+      for (const m of current) {
+        if (m.homeWinner && m.home.id) winnerToMatch.set(m.home.id, m);
+        if (m.awayWinner && m.away.id) winnerToMatch.set(m.away.id, m);
+      }
 
+      for (const target of next) {
         const elTarget = cardRefs.current.get(target.id);
         if (!elTarget) continue;
         const targetRect = elTarget.getBoundingClientRect();
         const targetY = targetRect.top + targetRect.height / 2 - containerRect.top;
         const targetX = targetRect.left - containerRect.left;
 
-        for (const m of [m1, m2]) {
-          if (!m) continue;
-          const el = cardRefs.current.get(m.id);
+        const sources = [target.home, target.away]
+          .filter((t) => t.id && winnerToMatch.has(t.id))
+          .map((t) => winnerToMatch.get(t.id as string)!);
+
+        for (const sourceMatch of sources) {
+          const el = cardRefs.current.get(sourceMatch.id);
           if (!el) continue;
           const r = el.getBoundingClientRect();
           const fromX = r.right - containerRect.left;

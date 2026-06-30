@@ -12,6 +12,7 @@ const STAGE_TYPES: { id: number; key: string }[] = [
 ];
 
 export type BracketTeam = {
+  id: string | null;
   name: string;
   abbreviation: string;
   logo: string | null;
@@ -80,7 +81,7 @@ async function getMatchDetails(eventId: string, matchNumber: number, stage: stri
           homeAway?: string;
           winner?: boolean;
           score?: string;
-          team?: { displayName?: string; abbreviation?: string; logo?: string };
+          team?: { id?: string; displayName?: string; abbreviation?: string; logo?: string };
         }[];
       }[];
     };
@@ -107,12 +108,14 @@ async function getMatchDetails(eventId: string, matchNumber: number, stage: stri
     status,
     clock: comp.status?.type?.detail || null,
     home: {
+      id: isPlaceholderTeam(home.team?.abbreviation) ? null : home.team?.id || null,
       name: home.team?.displayName || "?",
       abbreviation: home.team?.abbreviation || "?",
       logo: home.team?.logo || null,
       isPlaceholder: isPlaceholderTeam(home.team?.abbreviation),
     },
     away: {
+      id: isPlaceholderTeam(away.team?.abbreviation) ? null : away.team?.id || null,
       name: away.team?.displayName || "?",
       abbreviation: away.team?.abbreviation || "?",
       logo: away.team?.logo || null,
