@@ -28,6 +28,7 @@ type BracketMatch = {
   awayScore: number | null;
   homeWinner: boolean;
   awayWinner: boolean;
+  neonMatchId?: number;
 };
 
 const stageNames: Record<string, string> = {
@@ -67,13 +68,14 @@ function TeamRow({ team, score, isWinner, isLoser, isLive }: {
 const BracketMatchCard = ({ match, cardRef }: { match: BracketMatch; cardRef?: (el: HTMLDivElement | null) => void }) => {
   const live = match.status === "live";
   const hasRealTeams = !match.home.isPlaceholder && !match.away.isPlaceholder;
+  const isClickable = hasRealTeams && match.neonMatchId !== undefined;
 
   const card = (
     <div
       ref={cardRef}
       className={`w-44 sm:w-48 rounded-lg border bg-surface overflow-hidden transition-colors ${
         live ? "border-accent-red/50 shadow-md shadow-accent-red/10" : "border-border"
-      } ${hasRealTeams ? "hover:border-accent-purple/40" : ""}`}
+      } ${isClickable ? "hover:border-accent-purple/40" : ""}`}
     >
       {live ? (
         <div className="flex items-center gap-1 px-2.5 py-1 bg-accent-red/10">
@@ -97,7 +99,7 @@ const BracketMatchCard = ({ match, cardRef }: { match: BracketMatch; cardRef?: (
     </div>
   );
 
-  return hasRealTeams ? <Link href={`/dashboard/matches/${match.id}`} className="block">{card}</Link> : card;
+  return isClickable ? <Link href={`/dashboard/matches/${match.neonMatchId}`} className="block">{card}</Link> : card;
 };
 
 type Point = { x: number; y: number };

@@ -104,6 +104,10 @@ export type ESPNMatchDetail = {
   homeLineup: ESPNLineup | null;
   awayLineup: ESPNLineup | null;
   events: ESPNMatchEvent[];
+  status: "live" | "finished" | "scheduled" | null;
+  statusDetail: string | null;
+  homeScore: number | null;
+  awayScore: number | null;
 };
 
 // ─── Helpers ───
@@ -294,11 +298,21 @@ export async function getESPNMatchDetail(eventId: string): Promise<ESPNMatchDeta
       }
     });
 
+    const comp = summary.header?.competitions?.[0];
+    const state = comp?.status?.type?.state;
+    const status: ESPNMatchDetail["status"] = state === "in" ? "live" : state === "post" ? "finished" : state === "pre" ? "scheduled" : null;
+    const homeCompetitor = comp?.competitors?.find((c: any) => c.homeAway === "home");
+    const awayCompetitor = comp?.competitors?.find((c: any) => c.homeAway === "away");
+
     return {
       stats,
       homeLineup: rosters?.[0] ? parseRoster(rosters[0]) : null,
       awayLineup: rosters?.[1] ? parseRoster(rosters[1]) : null,
       events,
+      status,
+      statusDetail: comp?.status?.type?.detail || null,
+      homeScore: homeCompetitor?.score !== undefined ? parseInt(homeCompetitor.score) : null,
+      awayScore: awayCompetitor?.score !== undefined ? parseInt(awayCompetitor.score) : null,
     };
   } catch {
     return null;

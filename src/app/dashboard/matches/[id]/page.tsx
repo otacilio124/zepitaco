@@ -37,13 +37,20 @@ export default async function MatchAnalysisPage({
     );
   }
 
+  // Always try ESPN directly instead of trusting Neon's `status` field, which
+  // lags behind (e.g. shows "live" for a match ESPN already confirmed finished
+  // on penalties). ESPN is the source of truth for live/finished match data.
   const [analysis, espnData] = await Promise.all([
     getFullMatchAnalysis(matchId),
-    match.status === "finished"
-      ? getESPNMatchData(match.homeTeam, match.awayTeam, match.matchDate)
-      : Promise.resolve(null),
+    getESPNMatchData(match.homeTeam, match.awayTeam, match.matchDate),
   ]);
   const espnStats = espnData?.stats || null;
+
+  // Prefer ESPN's live status/score over Neon's (which can lag behind, e.g.
+  // showing "live" for a match ESPN already confirmed finished on penalties).
+  const displayStatus = espnData?.status ?? match.status;
+  const displayHomeScore = espnData?.homeScore ?? match.homeScore;
+  const displayAwayScore = espnData?.awayScore ?? match.awayScore;
 
   // Fetch player photos for lineups
   const allPlayerNames: string[] = [];
@@ -102,27 +109,27 @@ export default async function MatchAnalysisPage({
           </div>
 
           <div className="text-center px-6">
-            {match.status === "finished" ? (
+            {displayStatus === "finished" || displayStatus === "live" ? (
               <div className="text-4xl font-bold text-white">
-                {match.homeScore} <span className="text-muted">-</span>{" "}
-                {match.awayScore}
+                {displayHomeScore} <span className="text-muted">-</span>{" "}
+                {displayAwayScore}
               </div>
             ) : (
               <div className="text-3xl font-mono text-muted">vs</div>
             )}
             <span
               className={`inline-block mt-2 text-[10px] font-bold px-3 py-1 rounded-full ${
-                match.status === "live"
+                displayStatus === "live"
                   ? "bg-accent-red text-white animate-pulse"
-                  : match.status === "finished"
+                  : displayStatus === "finished"
                     ? "bg-card-border text-muted"
                     : "bg-accent-purple/20 text-accent-purple"
               }`}
             >
-              {match.status === "live"
+              {displayStatus === "live"
                 ? "AO VIVO"
-                : match.status === "finished"
-                  ? "ENCERRADO"
+                : displayStatus === "finished"
+                  ? espnData?.statusDetail?.includes("Pens") ? "ENCERRADO (PÊNALTIS)" : "ENCERRADO"
                   : "AGENDADO"}
             </span>
           </div>
@@ -454,11 +461,15 @@ export default async function MatchAnalysisPage({
             </div>
           )}
 
-          {/* Probable Lineups (future matches - from squad data) */}
-          {!espnData && (analysis.homePlayers.length > 0 || analysis.awayPlayers.length > 0) && (
+          {/* Probable Lineups (matches without confirmed ESPN rosters yet) */}
+          {!espnData?.homeLineup && !espnData?.awayLineup && (analysis.homePlayers.length > 0 || analysis.awayPlayers.length > 0) && (
             <div>
               <h2 className="text-lg font-semibold text-white mb-1">Escalações Prováveis</h2>
-              <p className="text-xs text-muted mb-4">Baseado nos elencos convocados</p>
+              <p className="text-xs text-muted mb-4">
+                {analysis.homeLineupBasedOn || analysis.awayLineupBasedOn
+                  ? "Baseado na titular do último jogo de cada seleção"
+                  : "Baseado nos elencos convocados"}
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {analysis.homePlayers.length > 0 && (
                   <FormationPitch formation={analysis.homeFormation} players={analysis.homePlayers} teamName={getCountryName(match.homeTeam)} side="home" photos={playerPhotos} />
@@ -470,12 +481,13 @@ export default async function MatchAnalysisPage({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 {[
-                  { players: analysis.homePlayers, team: match.homeTeam, colorClass: "text-accent-green bg-accent-green/10" },
-                  { players: analysis.awayPlayers, team: match.awayTeam, colorClass: "text-accent-purple bg-accent-purple/10" },
-                ].map(({ players, team, colorClass }) =>
+                  { players: analysis.homePlayers, team: match.homeTeam, basedOn: analysis.homeLineupBasedOn, colorClass: "text-accent-green bg-accent-green/10" },
+                  { players: analysis.awayPlayers, team: match.awayTeam, basedOn: analysis.awayLineupBasedOn, colorClass: "text-accent-purple bg-accent-purple/10" },
+                ].map(({ players, team, basedOn, colorClass }) =>
                   players.length > 0 && (
                     <div key={team} className="card p-4">
-                      <h3 className="text-sm font-semibold text-white mb-2">{getCountryName(team)} — Titulares</h3>
+                      <h3 className="text-sm font-semibold text-white mb-0.5">{getCountryName(team)} — Titulares</h3>
+                      {basedOn && <p className="text-[10px] text-muted mb-2">{basedOn}</p>}
                       <div className="space-y-1">
                         {players.map((p, idx) => (
                           <div key={idx} className="flex items-center justify-between text-xs py-1 border-b border-border/30 last:border-0">
@@ -506,7 +518,7 @@ export default async function MatchAnalysisPage({
       )}
 
       {/* User Prediction */}
-      {match.status === "scheduled" && (
+      {displayStatus === "scheduled" && (
         <div>
           <h2 className="text-lg font-semibold text-white mb-3">
             Seu Pitaco

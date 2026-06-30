@@ -32,6 +32,7 @@ export type BracketMatch = {
   awayScore: number | null;
   homeWinner: boolean;
   awayWinner: boolean;
+  neonMatchId?: number;
 };
 
 type CoreRef = { $ref: string };

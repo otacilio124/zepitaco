@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { teams, teamStats, teamPlayers, matches } from "./db/schema";
 import { eq, and } from "drizzle-orm";
+import { getTeamRecentLineup } from "./api/espn-team";
 
 export type LineupPlayer = {
   id: number;
@@ -26,6 +27,8 @@ export type MatchAnalysisResult = {
   awayFormation: string;
   homeRating: number | null;
   awayRating: number | null;
+  homeLineupBasedOn: string | null;
+  awayLineupBasedOn: string | null;
   analysis: {
     predictedHomeScore: number;
     predictedAwayScore: number;
@@ -196,6 +199,50 @@ function mapSeedPlayersToLineup(players: (typeof teamPlayers.$inferSelect)[]): L
   }));
 }
 
+const espnPositionMap: Record<string, string> = {
+  G: "GK", GK: "GK",
+  D: "DEF", CB: "DEF", LB: "DEF", RB: "DEF", "CD-L": "DEF", "CD-R": "DEF", LE: "DEF", LD: "DEF",
+  M: "MID", CM: "MID", CDM: "MID", CAM: "MID", LM: "MID", RM: "MID", "CM-L": "MID", "CM-R": "MID", "DM-L": "MID", "DM-R": "MID", "AM-L": "MID", "AM-R": "MID",
+  F: "FWD", ST: "FWD", CF: "FWD", LW: "FWD", RW: "FWD", "CF-L": "FWD", "CF-R": "FWD",
+};
+
+function mapEspnPositionToGeneric(pos: string): string {
+  return espnPositionMap[pos.toUpperCase()] || "MID";
+}
+
+/**
+ * Fetches the team's actual starting XI from their most recent finished
+ * match. This is the real, evidence-based way to predict a probable
+ * lineup — not a guess from squad order.
+ */
+async function getRecentBasedLineup(teamName: string): Promise<{
+  players: LineupPlayer[];
+  formation: string;
+  basedOn: string;
+} | null> {
+  const recent = await getTeamRecentLineup(teamName);
+  if (!recent || recent.starters.length === 0) return null;
+
+  const players: LineupPlayer[] = recent.starters.map((p) => ({
+    id: 0,
+    name: p.name,
+    position: mapEspnPositionToGeneric(p.position),
+    number: parseInt(p.jersey) || 0,
+    age: 0,
+    club: "",
+    rating: null,
+    marketValue: 0,
+    layoutX: 0,
+    layoutY: 0,
+  }));
+
+  return {
+    players,
+    formation: recent.formation,
+    basedOn: `Último jogo: vs ${recent.opponent}`,
+  };
+}
+
 export async function getFullMatchAnalysis(matchId: number): Promise<MatchAnalysisResult | null> {
   const [match] = await db.select().from(matches).where(eq(matches.matchId, matchId)).limit(1);
   if (!match) return null;
@@ -219,13 +266,32 @@ export async function getFullMatchAnalysis(matchId: number): Promise<MatchAnalys
   let awayPlayers: LineupPlayer[] = [];
   let homeFormation = homeTeam.formation || "4-3-3";
   let awayFormation = awayTeam.formation || "4-3-3";
+  let homeLineupBasedOn: string | null = null;
+  let awayLineupBasedOn: string | null = null;
   let lineupSource: "seed" | "none" = "none";
 
-  if (homeTeam.id) {
+  // Primary source: real lineup from the team's most recent finished match (ESPN)
+  const [homeRecent, awayRecent] = await Promise.all([
+    getRecentBasedLineup(match.homeTeam),
+    getRecentBasedLineup(match.awayTeam),
+  ]);
+
+  if (homeRecent) {
+    homePlayers = homeRecent.players;
+    homeFormation = homeRecent.formation;
+    homeLineupBasedOn = homeRecent.basedOn;
+    lineupSource = "seed";
+  } else if (homeTeam.id) {
     const seedHome = await db.select().from(teamPlayers).where(and(eq(teamPlayers.teamId, homeTeam.id), eq(teamPlayers.isStarter, true)));
     if (seedHome.length > 0) { homePlayers = mapSeedPlayersToLineup(seedHome); lineupSource = "seed"; }
   }
-  if (awayTeam.id) {
+
+  if (awayRecent) {
+    awayPlayers = awayRecent.players;
+    awayFormation = awayRecent.formation;
+    awayLineupBasedOn = awayRecent.basedOn;
+    lineupSource = "seed";
+  } else if (awayTeam.id) {
     const seedAway = await db.select().from(teamPlayers).where(and(eq(teamPlayers.teamId, awayTeam.id), eq(teamPlayers.isStarter, true)));
     if (seedAway.length > 0) { awayPlayers = mapSeedPlayersToLineup(seedAway); lineupSource = "seed"; }
   }
@@ -235,6 +301,8 @@ export async function getFullMatchAnalysis(matchId: number): Promise<MatchAnalys
   return {
     homeTeam, awayTeam, homeStats: homeStatsRow, awayStats: awayStatsRow,
     homePlayers, awayPlayers, homeFormation, awayFormation,
-    homeRating: null, awayRating: null, analysis, lineupSource,
+    homeRating: null, awayRating: null,
+    homeLineupBasedOn, awayLineupBasedOn,
+    analysis, lineupSource,
   };
 }
