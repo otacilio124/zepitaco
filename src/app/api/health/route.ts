@@ -17,8 +17,8 @@ async function checkWithTimeout<T>(promise: Promise<T>, ms: number): Promise<boo
 
 export async function GET() {
   const [espnScoreboard, espnStandings] = await Promise.all([
-    checkWithTimeout(getESPNScoreboard(), 5000),
-    checkWithTimeout(getESPNStandings(), 5000),
+    checkWithTimeout(getESPNScoreboard(), 6000),
+    checkWithTimeout(getESPNStandings(), 6000),
   ]);
 
   const allReady = espnScoreboard && espnStandings;
